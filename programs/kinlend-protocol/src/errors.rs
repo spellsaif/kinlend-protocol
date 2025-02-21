@@ -16,5 +16,11 @@ pub enum ErrorCode {
     LoanIsNotExpired,
 
     #[msg("Loan Request not found in the registry.")]
-    NotFoundInRegistry
+    NotFoundInRegistry,
+
+    #[msg("Calculation Error.")]
+    CalculationError,
+
+    #[msg("Page is full.")]
+    PageIsFull
 }
