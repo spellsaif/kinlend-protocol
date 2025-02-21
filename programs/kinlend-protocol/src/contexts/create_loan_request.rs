@@ -25,7 +25,7 @@ pub struct CreateLoanRequest<'info> {
         init,
         payer = borrower,
         space = 8 + CollateralVaultState::INIT_SPACE,
-        seeds = [b"loan_vault", loan_request.key().as_ref()],
+        seeds = [b"collateral_vault", loan_request.key().as_ref()],
         bump
     )]
     pub collateral_vault: Box<Account<'info, CollateralVaultState>>,
