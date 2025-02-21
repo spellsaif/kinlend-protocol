@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 #[account]
 #[derive(InitSpace)]
-pub struct LoanRequest {
+pub struct LoanRequestState {
     pub borrower: Pubkey,       // Borrower's wallet address
     pub lender: Option<Pubkey>, // Address of the lender
     pub loan_amount: u64,       // Desired loan amount in USDC
