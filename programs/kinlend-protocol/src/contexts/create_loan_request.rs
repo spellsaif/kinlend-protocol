@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::state::{LoanRequestState, CollateralVaultState};
+use crate::state::{CollateralVaultState, LoanRegistryState, LoanRequestState};
 
 #[derive(Accounts)]
 #[instruction(loan_id:u64)]
@@ -29,6 +29,13 @@ pub struct CreateLoanRequest<'info> {
         bump
     )]
     pub collateral_vault: Box<Account<'info, CollateralVaultState>>,
+
+    #[account(
+        mut,
+        seeds = [b"loan_registry"],
+        bump 
+    )]
+    pub loan_registry: Box<Account<'info, LoanRegistryState>>,
 
     pub system_program: Program<'info, System>,
 
