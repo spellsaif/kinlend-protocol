@@ -2,6 +2,9 @@ use anchor_lang::prelude::*;
 
 declare_id!("CqzdqFZSNhvPUjPUKT141iQNvBcUzMjRgmWJ6MTWF21c");
 
+mod contexts;
+mod state;
+
 #[program]
 pub mod kinlend_protocol {
     use super::*;
