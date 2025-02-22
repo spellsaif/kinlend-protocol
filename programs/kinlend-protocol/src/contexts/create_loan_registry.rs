@@ -21,3 +21,17 @@ pub struct CreateLoanRegistry<'info> {
     //program
     pub system_program: Program<'info, System>
 }
+
+impl<'info> CreateLoanRegistry<'info> {
+
+    pub fn create_loan_registry(&mut self) -> Result<()> {
+
+        //creating loan registry
+        self.loan_registry.set_inner(LoanRegistryState{
+            first_page: None,
+            total_loans: 0,
+        });
+
+        Ok(())
+    }
+}
