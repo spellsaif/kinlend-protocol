@@ -30,6 +30,7 @@ pub struct CreateLoanRequest<'info> {
     )]
     pub collateral_vault: Box<Account<'info, CollateralVaultState>>,
 
+    //Root registry Account
     #[account(
         mut,
         seeds = [b"loan_registry"],
@@ -37,6 +38,7 @@ pub struct CreateLoanRequest<'info> {
     )]
     pub loan_registry: Box<Account<'info, LoanRegistryState>>,
 
+    //Current page where we want to insert new loan request
     #[account(mut)]
     pub loan_registry_page: Box<Account<'info, LoanRegistryPageState>>,
 
@@ -78,6 +80,8 @@ impl<'info> CreateLoanRequest<'info> {
             lender: None,
             repayment_time: None
         });
+
+        //adding to LoanRegistry
 
         Ok(())
     }
