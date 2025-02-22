@@ -66,7 +66,8 @@ impl<'info> CreateLoanRequest<'info> {
         loan_amount: u64, 
         collateral: u64,
         duration_days: u64,
-        current_sol_price: u64
+        current_sol_price: u64,
+        bumps: CreateLoanRequestBumps
 
     ) -> Result<()> {
 
@@ -89,6 +90,11 @@ impl<'info> CreateLoanRequest<'info> {
             borrower: borrower.key(),
             lender: None,
             repayment_time: None
+        });
+
+        //Creating CollateralVaultState
+        self.collateral_vault.set_inner(CollateralVaultState{
+            bump: bumps.collateral_vault
         });
 
 
