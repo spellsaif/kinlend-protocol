@@ -1,4 +1,4 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL, system_program::{transfer, Transfer}};
 
 use crate::{errors::ErrorCode, state::{CollateralVaultState, LoanRegistryPageState, LoanRegistryState, LoanRequestState}};
 
@@ -96,6 +96,24 @@ impl<'info> CreateLoanRequest<'info> {
         self.collateral_vault.set_inner(CollateralVaultState{
             bump: bumps.collateral_vault
         });
+
+
+        //transferring collateral from borrower's wallet to collateral vault
+
+        //Accounts needed
+        let cpi_accounts = Transfer{
+            from: self.borrower.to_account_info(),
+            to: self.collateral_vault.to_account_info()
+        };
+
+        //System Program for making cpi calls
+        let cpi_program = self.system_program.to_account_info();
+
+        //cpi context
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+
+        //now initiating transfer
+        transfer(cpi_ctx, collateral * LAMPORTS_PER_SOL)?;
 
 
         //adding to LoanRegistryPage
