@@ -37,11 +37,7 @@ pub struct CreateLoanRequest<'info> {
     )]
     pub loan_registry: Box<Account<'info, LoanRegistryState>>,
 
-    #[account(
-        mut,
-        seeds = [b"loan_registry_page"],
-        bump
-    )]
+    #[account(mut)]
     pub loan_registry_page: Box<Account<'info, LoanRegistryPageState>>,
 
     pub system_program: Program<'info, System>,
