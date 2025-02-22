@@ -42,6 +42,9 @@ pub struct CreateLoanRequest<'info> {
     #[account(mut)]
     pub loan_registry_page: Box<Account<'info, LoanRegistryPageState>>,
 
+    //create new page if previous page is full
+    
+
     pub system_program: Program<'info, System>,
 
 }
