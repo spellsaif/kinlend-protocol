@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::state::{CollateralVaultState, LoanRegistryState, LoanRequestState};
+use crate::{errors::ErrorCode, state::{CollateralVaultState, LoanRegistryState, LoanRequestState}};
 
 #[derive(Accounts)]
 #[instruction(loan_id:u64)]
@@ -39,4 +39,42 @@ pub struct CreateLoanRequest<'info> {
 
     pub system_program: Program<'info, System>,
 
+}
+
+
+
+//Implementing CreateLoanRequest
+impl<'info> CreateLoanRequest<'info> {
+    pub fn create_loan_request(
+        &mut self, 
+        loan_id: u64, 
+        amount: u64, 
+        collateral: u64,
+        duration_days: u64,
+        current_sol_price: u64
+
+    ) -> Result<()> {
+
+        //caculating required collateral in SOL
+        let required_sol = amount
+                                .checked_mul(150).ok_or(ErrorCode::CalculationError)?
+                                .checked_div(100).ok_or(ErrorCode::CalculationError)?
+                                .checked_div(current_sol_price).ok_or(ErrorCode::CalculationError)?;
+
+        //Checking whether enough collateral is provided against borrowing amount.
+        require!(collateral >= required_sol, ErrorCode::InsuffientCollateral);
+        let borrower = &self.borrower;
+
+        self.loan_request.set_inner(LoanRequestState {
+            loan_id,
+            loan_amount:amount,
+            duration_days,
+            collateral,
+            borrower: borrower.key(),
+            lender: None,
+            repayment_time: None
+        });
+
+        Ok(())
+    }
 }
