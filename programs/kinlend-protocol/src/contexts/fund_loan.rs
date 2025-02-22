@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
 use crate::state::LoanRequestState;
 use crate::errors::ErrorCode;
@@ -47,15 +47,25 @@ impl<'info> FundLoan<'info> {
     pub fn fund_loan(&mut self) -> Result<()> {
     
         //Loan Request Account
-        let loan_request = &self.loan_request;
+        let loan_request = &mut self.loan_request;
         
         require!(loan_request.lender.is_none(), ErrorCode::AlreadyFunded);
 
+        //storing the lender in the loan request
+        loan_request.lender = Some(self.lender.key());
 
+        // Transfer USDC from lender to borrower
+        let cpi_accounts = Transfer{
+            from: self.lender_usdc_account.to_account_info(),
+            to: self.borrower_usdc_account.to_account_info(),
+            authority: self.lender.to_account_info()
+        };
 
+        let cpi_program = self.token_progran.to_account_info();
 
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
-
+        transfer(cpi_ctx, loan_request.loan_amount)?;
 
         Ok(())
     }
