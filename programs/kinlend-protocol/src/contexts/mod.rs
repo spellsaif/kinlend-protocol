@@ -7,6 +7,7 @@ pub mod cancel_loan_request;
 pub mod liquidate_loan;
 pub mod create_loan_registry;
 pub mod init_config;
+pub mod update_config;
 
 pub use create_loan_request::*;
 pub use create_protocol_vault::*;
@@ -17,3 +18,4 @@ pub use cancel_loan_request::*;
 pub use liquidate_loan::*;
 pub use create_loan_registry::*;
 pub use init_config::*;
+pub use update_config::*;
