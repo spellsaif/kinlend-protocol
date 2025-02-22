@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{errors::ErrorCode, state::{CollateralVaultState, LoanRegistryState, LoanRequestState}};
+use crate::{errors::ErrorCode, state::{CollateralVaultState, LoanRegistryPageState, LoanRegistryState, LoanRequestState}};
 
 #[derive(Accounts)]
 #[instruction(loan_id:u64)]
@@ -37,6 +37,13 @@ pub struct CreateLoanRequest<'info> {
     )]
     pub loan_registry: Box<Account<'info, LoanRegistryState>>,
 
+    #[account(
+        mut,
+        seeds = [b"loan_registry_page"],
+        bump
+    )]
+    pub loan_registry_page: Box<Account<'info, LoanRegistryPageState>>,
+
     pub system_program: Program<'info, System>,
 
 }
@@ -65,6 +72,7 @@ impl<'info> CreateLoanRequest<'info> {
         require!(collateral >= required_sol, ErrorCode::InsuffientCollateral);
         let borrower = &self.borrower;
 
+        //Creating LoanRequestState Account which holds all the information regarding particular loan request
         self.loan_request.set_inner(LoanRequestState {
             loan_id,
             loan_amount,
