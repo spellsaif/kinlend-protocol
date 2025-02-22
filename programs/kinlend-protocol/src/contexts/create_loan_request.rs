@@ -38,12 +38,19 @@ pub struct CreateLoanRequest<'info> {
     )]
     pub loan_registry: Box<Account<'info, LoanRegistryState>>,
 
-    //Current page where we want to insert new loan request
+    //Current page where we want to insert new loan request if exists
     #[account(mut)]
-    pub loan_registry_page: Box<Account<'info, LoanRegistryPageState>>,
+    pub loan_registry_page: Option<Box<Account<'info, LoanRegistryPageState>>>,
 
     //create new page if previous page is full
-    
+    #[account(
+        init_if_needed,
+        payer = borrower,
+        space = 8 + LoanRegistryPageState::INIT_SPACE,
+        seeds = [b"loan_registry_page", &loan_registry.total_loans.to_le_bytes()[..]],
+        bump
+    )]
+    pub new_registry_page: Option<Box<Account<'info, LoanRegistryPageState>>>,
 
     pub system_program: Program<'info, System>,
 
@@ -84,7 +91,40 @@ impl<'info> CreateLoanRequest<'info> {
             repayment_time: None
         });
 
-        //adding to LoanRegistry
+
+        //adding to LoanRegistryPage
+        if let Some(page) = self.loan_registry_page.as_mut() {
+            //Add to current page if it's not full
+            if page.loan_requests.len() < 10 {
+                page.loan_requests.push(self.loan_request.key());
+            } else {
+                //if page is full, new registry page
+                let new_page = self.new_registry_page.as_mut().ok_or(ErrorCode::PageIsFull)?;
+
+                //Linking new page from full one
+                page.next_page = Some(new_page.key());
+
+                //adding loan request to new page
+                new_page.loan_requests.push(self.loan_request.key());
+
+            }
+        } else {
+            
+            //if no loan registry page exists, use the new page
+            let new_page =  self.loan_registry_page.as_mut().ok_or(ErrorCode::PageIsFull)?;
+
+            //if not first page exists, make this first page in loan registry
+            if self.loan_registry.first_page.is_none() {
+                self.loan_registry.first_page = Some(new_page.key());
+            }
+
+            //add loan request to new page
+            new_page.loan_requests.push(self.loan_request.key());
+        }
+
+
+        self.loan_registry.total_loans += 1;
+
 
         Ok(())
     }
