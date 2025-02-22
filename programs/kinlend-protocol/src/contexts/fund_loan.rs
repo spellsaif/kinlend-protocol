@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{token::Token, token_interface::{Mint, TokenAccount}};
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::state::LoanRequestState;
+use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
 #[instruction(loan_id: u64)]
@@ -18,7 +19,7 @@ pub struct FundLoan<'info> {
 
     //The Borrower receives USDC
     #[account(mut)]
-    pub borrower: AccountInfo<'info>,
+    pub borrower: SystemAccount<'info>,
 
     //Lender's associated token account
     #[account(
@@ -40,4 +41,22 @@ pub struct FundLoan<'info> {
     pub token_progran: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 
+}
+
+impl<'info> FundLoan<'info> {
+    pub fn fund_loan(&mut self) -> Result<()> {
+    
+        //Loan Request Account
+        let loan_request = &self.loan_request;
+        
+        require!(loan_request.lender.is_none(), ErrorCode::AlreadyFunded);
+
+
+
+
+
+
+
+        Ok(())
+    }
 }
