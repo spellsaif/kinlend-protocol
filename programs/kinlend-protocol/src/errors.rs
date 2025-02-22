@@ -22,5 +22,8 @@ pub enum ErrorCode {
     CalculationError,
 
     #[msg("Page is full.")]
-    PageIsFull
+    PageIsFull,
+
+    #[msg("Insufficient Collateral")]
+    InsuffientCollateral
 }
