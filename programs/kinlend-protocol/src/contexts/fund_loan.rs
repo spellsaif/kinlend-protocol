@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
-use crate::state::LoanRequestState;
+use crate::state::{ConfigState, LoanRequestState};
 use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
@@ -9,6 +9,13 @@ use crate::errors::ErrorCode;
 pub struct FundLoan<'info> {
     #[account(mut)]
     pub lender: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"config"],
+        bump
+    )]
+    pub config: Box<Account<'info, ConfigState>>,
 
     #[account(
         mut,
@@ -24,7 +31,7 @@ pub struct FundLoan<'info> {
     //Lender's associated token account
     #[account(
         mut,
-        constraint = lender_usdc_account.mint == usdc_mint.key(),
+        constraint = lender_usdc_account.mint == config.usdc_mint,
         constraint = lender_usdc_account.owner == lender.key()
     )]
     pub lender_usdc_account: Box<Account<'info, TokenAccount>>,
@@ -32,12 +39,11 @@ pub struct FundLoan<'info> {
     //Borrower's associated token account
     #[account(
         mut,
-        constraint = borrower_usdc_account.mint == usdc_mint.key(),
+        constraint = borrower_usdc_account.mint == config.usdc_mint,
     )]
     pub borrower_usdc_account: Box<Account<'info, TokenAccount>>,
 
 
-    pub usdc_mint: Account<'info, Mint>,
     pub token_progran: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 
