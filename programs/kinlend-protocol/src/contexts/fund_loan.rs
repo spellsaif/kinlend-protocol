@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
 use crate::state::{ConfigState, LoanRequestState};
@@ -38,13 +39,16 @@ pub struct FundLoan<'info> {
 
     //Borrower's associated token account
     #[account(
-        mut,
-        constraint = borrower_usdc_account.mint == config.usdc_mint,
+        init_if_needed,
+        payer = lender,
+        associated_token::mint = config.usdc_mint,
+        associated_token::authority = borrower
     )]
     pub borrower_usdc_account: Box<Account<'info, TokenAccount>>,
 
 
     pub token_progran: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 
 }
