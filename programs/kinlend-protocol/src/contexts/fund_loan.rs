@@ -41,13 +41,15 @@ pub struct FundLoan<'info> {
     #[account(
         init_if_needed,
         payer = lender,
-        associated_token::mint = config.usdc_mint,
+        associated_token::mint = usdc_mint,
         associated_token::authority = borrower
     )]
     pub borrower_usdc_account: Box<Account<'info, TokenAccount>>,
 
 
-    pub token_progran: Program<'info, Token>,
+    pub usdc_mint: Account<'info, Mint>,
+
+    pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 
