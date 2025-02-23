@@ -46,7 +46,6 @@ pub struct FundLoan<'info> {
     )]
     pub borrower_usdc_account: Box<Account<'info, TokenAccount>>,
 
-
     pub usdc_mint: Account<'info, Mint>,
 
     pub token_program: Program<'info, Token>,
@@ -73,7 +72,7 @@ impl<'info> FundLoan<'info> {
             authority: self.lender.to_account_info()
         };
 
-        let cpi_program = self.token_progran.to_account_info();
+        let cpi_program = self.token_program.to_account_info();
 
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
