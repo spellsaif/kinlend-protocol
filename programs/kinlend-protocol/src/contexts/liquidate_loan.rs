@@ -39,6 +39,12 @@ pub struct LiquidateLoan<'info> {
     )]
     pub protocol_vault: Box<Account<'info, ProtocolVaultState>>,
 
+
+    #[account(
+        address = "YOUR SOL PRICE FEED ADDRESS GOES HERE"
+    )]
+    pub sol_price_feed: AccountInfo<'info>,
+
     //program
     pub system_program: Program<'info, System>,
 
