@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{token::Token, token_interface::{Mint, TokenAccount}};
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
-use crate::state::{CollateralVaultState, LoanRequestState, ProtocolVaultState};
+use crate::state::{CollateralVaultState, ConfigState, LoanRequestState, ProtocolVaultState};
 
 #[derive(Accounts)]
 pub struct RepayLoan<'info> {
@@ -52,6 +52,14 @@ pub struct RepayLoan<'info> {
         bump = protocol_vault.bump
     )]
     pub protocol_vault: Box<Account<'info, ProtocolVaultState>>,
+
+    //config account which stores mint address of usdc
+    #[account(
+        mut,
+        seeds = [b"config"],
+        bump,
+    )]
+    pub config: Box<Account<'info, ConfigState>>,
 
     //USDC_mint
     pub usdc_mint: Account<'info, Mint>,
