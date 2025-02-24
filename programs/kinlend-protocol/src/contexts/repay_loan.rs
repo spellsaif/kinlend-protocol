@@ -18,10 +18,6 @@ pub struct RepayLoan<'info> {
     )]
     pub borrower_usdc_account: Box<Account<'info, TokenAccount>>,
 
-    //Lender's account
-    #[account(mut)]
-    pub lender: AccountInfo<'info>,
-
     //lender's USDC ATA
     #[account(
         mut,
