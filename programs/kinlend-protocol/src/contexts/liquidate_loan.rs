@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2};
 
-use crate::state::{ CollateralVaultState, LoanRegistryState, LoanRequestState, ProtocolVaultState};
+use crate::state::{ CollateralVaultState, LoanRegistryPageState, LoanRegistryState, LoanRequestState, ProtocolVaultState};
 
 use crate::errors::ErrorCode;
 
@@ -33,6 +33,7 @@ pub struct LiquidateLoan<'info> {
     )]
     pub loan_registry: Box<Account<'info, LoanRegistryState>>,
 
+
     #[account(
         mut,
         seeds = [b"protocol_vault"],
@@ -62,8 +63,8 @@ impl<'info> LiquidateLoan<'info> {
         self.transfer_funds(self.lender.to_account_info(), lender_amount)?;
         self.transfer_funds(self.protocol_vault.to_account_info(), protocol_fee)?;
 
-        self.remove_loan_from_registry()?;
 
+        self.remove_loan_from_registry()?;
         Ok(())
         
     }
@@ -116,50 +117,23 @@ impl<'info> LiquidateLoan<'info> {
     }
 
 
-    fn remove_loan_from_registry(&mut self) -> Result<()> {
-        let mut current_page = match self.loan_registry.first_page {
-            Some(page) => page,
-            None => return Ok(()), // No pages exist, nothing to remove
-        };
+      /// Removes the liquidated loan request from the registry
+      fn remove_loan_from_registry(&mut self) -> Result<()> {
+        let loan_pubkey = self.loan_request.key(); // Get the Pubkey of the loan to remove
 
-        let mut prev_page: Option<AccountInfo<'info>> = None;
+        // Find and remove loan from the first page of registry
+        if let Some(pos) = self.loan_registry_page.loan_requests.iter().position(|x| *x == loan_pubkey) {
+            self.loan_registry_page.loan_requests.remove(pos);
+        }
 
-        loop {
-            let page_account = Account::<'info, LoanRegistryPageState>::try_from(
-                &self.loan_registry.to_account_info().owner.clone()
-            )?;
-
-            // Check if this page contains the loan_request
-            if let Some(index) = page_account.loan_requests.iter().position(|&x| x == self.loan_request.key()) {
-                page_account.loan_requests.remove(index); // Remove loan_request from the list
-
-                // If the page is now empty, remove it from the linked list
-                if page_account.loan_requests.is_empty() {
-                    match prev_page {
-                        Some(prev_page_account) => {
-                            let mut prev_page_data = Account::<LoanRegistryPageState>::try_from(&prev_page_account)?;
-                            prev_page_data.next_page = page_account.next_page; // Skip the empty page
-                        }
-                        None => {
-                            self.loan_registry.first_page = page_account.next_page; // Update first_page if it's the first page
-                        }
-                    }
-                }
-
-                self.loan_registry.total_loans -= 1; // Decrease the total loan count
-
-                return Ok(());
-            }
-
-            // Move to next page
-            if let Some(next_page) = page_account.next_page {
-                prev_page = Some(page_account.to_account_info());
-                current_page = next_page;
-            } else {
-                break;
-            }
+        // Reduce total loan count in the registry
+        if self.loan_registry.total_loans > 0 {
+            self.loan_registry.total_loans -= 1;
         }
 
         Ok(())
     }
+
+    
+    
 }
