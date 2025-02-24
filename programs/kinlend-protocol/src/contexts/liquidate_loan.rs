@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2};
 
-use crate::state::{ CollateralVaultState, LoanRegistryPageState, LoanRegistryState, LoanRequestState, ProtocolVaultState};
+use crate::state::{ CollateralVaultState, LoanRegistryState, LoanRequestState, ProtocolVaultState};
 
 use crate::errors::ErrorCode;
 
@@ -63,8 +63,8 @@ impl<'info> LiquidateLoan<'info> {
         self.transfer_funds(self.lender.to_account_info(), lender_amount)?;
         self.transfer_funds(self.protocol_vault.to_account_info(), protocol_fee)?;
 
+        //Need to implement remove_from_loan_registry()
 
-        self.remove_loan_from_registry()?;
         Ok(())
         
     }
@@ -117,23 +117,6 @@ impl<'info> LiquidateLoan<'info> {
     }
 
 
-      /// Removes the liquidated loan request from the registry
-      fn remove_loan_from_registry(&mut self) -> Result<()> {
-        let loan_pubkey = self.loan_request.key(); // Get the Pubkey of the loan to remove
 
-        // Find and remove loan from the first page of registry
-        if let Some(pos) = self.loan_registry_page.loan_requests.iter().position(|x| *x == loan_pubkey) {
-            self.loan_registry_page.loan_requests.remove(pos);
-        }
-
-        // Reduce total loan count in the registry
-        if self.loan_registry.total_loans > 0 {
-            self.loan_registry.total_loans -= 1;
-        }
-
-        Ok(())
-    }
-
-    
     
 }
