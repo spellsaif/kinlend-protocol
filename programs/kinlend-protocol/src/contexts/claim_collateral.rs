@@ -51,7 +51,9 @@ pub struct ClaimCollateral<'info> {
 impl<'info> ClaimCollateral<'info> {
     pub fn claim_protocol(&mut self) -> Result<()> {
 
-
+        self.ensure_loan_defaulted()?;
+        let collateral_amount = self.get_collateral()?;
+        self.transfer_collateral(collateral_amount)?;
         Ok(())
     }
 
