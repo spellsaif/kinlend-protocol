@@ -40,11 +40,6 @@ pub struct LiquidateLoan<'info> {
     )]
     pub protocol_vault: Box<Account<'info, ProtocolVaultState>>,
 
-    //lender account (receives SOL)
-    #[account(mut)]
-    pub lender_account: SystemAccount<'info>,
-
-
     pub price_update: Account<'info, PriceUpdateV2>,
 
     //program
