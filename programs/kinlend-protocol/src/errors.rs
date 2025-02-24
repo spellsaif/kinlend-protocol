@@ -32,4 +32,17 @@ pub enum ErrorCode {
 
     #[msg("Cannot liquidate yet")]
     CannotLiquidateYet,
+
+    #[msg("Loan registry page not found")]
+    LoanRegistryPageNotFound,
+
+    #[msg("Unauthorized Lender")]
+    UnauthorizedLender,
+
+    #[msg("Overflow")]
+    Overflow,
+
+    #[msg("Collateral Not Found")]
+    NoCollateral,
+
 }
