@@ -94,7 +94,7 @@ impl<'info> ClaimCollateral<'info> {
             return Err(ErrorCode::NoCollateral.into());
         } 
 
-        Ok((vault_lamports))
+        Ok(vault_lamports)
     }
 
     pub fn transfer_collateral(&mut self, total_amount: u64) -> Result<()> {
@@ -109,10 +109,12 @@ impl<'info> ClaimCollateral<'info> {
                 .ok_or(ErrorCode::Overflow)?;
 
         
+        let loan_request_key = self.loan_request.key();
+        
         //Derive the seeds for the collateral vault PDA to sign the CPI.
         let collateral_vault_seeds:&[&[u8]] = &[
             b"collateral_vault",
-            self.loan_request.key().as_ref(),
+            loan_request_key.as_ref(),
             &[self.collateral_vault.bump]
         ];
 
