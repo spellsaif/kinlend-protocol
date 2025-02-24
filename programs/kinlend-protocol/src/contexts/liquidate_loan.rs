@@ -52,16 +52,11 @@ pub struct LiquidateLoan<'info> {
 //implementation
 impl<'info> LiquidateLoan<'info> {
     pub fn liquidate_loan(&mut self) -> Result<()> {
-        let sol_price = self.get_current_sol_price()?;
-        let collateral_value = self.collateral_vault.to_account_info().lamports();
-        let collateral_usd_value = collateral_value * sol_price;
+        //checking for liquidation eligibility
+        self.ensure_liquidate_eligible()?;
 
-        let liquidation_threshold = self.loan_request.loan_amount * 110 / 100;
-        require!(collateral_usd_value < liquidation_threshold, ErrorCode::CannotLiquidateYet);
-
-        // Calculate lender and protocol fee amounts
-        let lender_amount = collateral_value * 108 / 110;
-        let protocol_fee = collateral_value - lender_amount;
+        // get protocol fee and collateral for lender
+        let (lender_amount, protocol_fee) = self.calculate_distribution()?;
 
         // Transfer funds
         self.transfer_funds(self.lender.to_account_info(), lender_amount)?;
@@ -69,6 +64,30 @@ impl<'info> LiquidateLoan<'info> {
 
         Ok(())
         
+    }
+
+    //Checking if it is eligible for liquidation
+    fn ensure_liquidate_eligible(&self) -> Result<()> {
+        let sol_price = self.get_current_sol_price()?;
+        let collateral_value = self.collateral_vault.to_account_info().lamports();
+        let collateral_usd_value = collateral_value * sol_price;
+        let liquidation_threshold = self.loan_request.loan_amount * 110 / 100;
+
+        require!(
+            collateral_usd_value < liquidation_threshold,
+            ErrorCode::CannotLiquidateYet
+        );
+
+        Ok(())
+    }
+
+    ///Calculating distribution of sol for lender and protocol
+    fn calculate_distribution(&self) -> Result<(u64, u64)> {
+        let collateral_value = self.collateral_vault.to_account_info().lamports();
+        let lender_amount = collateral_value * 108 / 110;
+        let protocol_fee = collateral_value - lender_amount;
+
+        Ok((lender_amount, protocol_fee))
     }
 
 
