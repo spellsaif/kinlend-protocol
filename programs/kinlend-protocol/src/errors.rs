@@ -25,5 +25,11 @@ pub enum ErrorCode {
     PageIsFull,
 
     #[msg("Insufficient Collateral")]
-    InsuffientCollateral
+    InsuffientCollateral,
+
+    #[msg("Oracle account is invalid")]
+    InvalidOracleAccount,
+
+    #[msg("Cannot liquidate yet")]
+    CannotLiquidateYet,
 }
