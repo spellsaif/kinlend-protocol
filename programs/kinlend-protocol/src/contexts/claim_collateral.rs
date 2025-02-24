@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 
-use crate::state::{ CollateralVaultState, LoanRegistryState, LoanRequestState};
+use crate::state::{ CollateralVaultState, LoanRegistryState, LoanRequestState, ProtocolVaultState};
 
 use crate::errors::ErrorCode;
 
@@ -28,6 +28,13 @@ pub struct ClaimCollateral<'info> {
         bump = collateral_vault.bump
     )]
     pub collateral_vault: Account<'info, CollateralVaultState>,
+
+    #[account(
+        mut,
+        seeds = [b"protocol_vault"],
+        bump
+    )]
+    pub protocol_vault: Box<Account<'info, ProtocolVaultState>>,
 
     #[account(
         mut,
@@ -122,6 +129,18 @@ impl<'info> ClaimCollateral<'info> {
         transfer(cpi_ctx, lender_amount)?;
         
         
+        //Transfer 10% to the protocol vault as fee
+        let cpi_accounts = Transfer{
+            from: self.collateral_vault.to_account_info(),
+            to: self.protocol_vault.to_account_info()
+        };
+
+        let cpi_program = self.system_program.to_account_info();
+
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, collateral_vault_seeds);
+
+        transfer(cpi_ctx, fee)?;
+
         Ok(())
     }
 }
