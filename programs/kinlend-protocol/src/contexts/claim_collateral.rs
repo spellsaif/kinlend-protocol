@@ -86,7 +86,7 @@ impl<'info> ClaimCollateral<'info> {
         Ok(())
     }
 
-    pub fn get_collateral(&mut self) -> Result<(u64)> {
+    pub fn get_collateral(&mut self) -> Result<u64> {
 
         let vault_lamports = self.collateral_vault.to_account_info().lamports();
 
