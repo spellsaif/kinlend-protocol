@@ -1,6 +1,9 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program::{transfer, Transfer};
 
-use crate::state::{CollateralVaultState, LoanRegistryState, LoanRequestState};
+use crate::state::{ CollateralVaultState, LoanRegistryState, LoanRequestState};
+
+use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
 pub struct ClaimCollateral<'info> {
@@ -35,4 +38,90 @@ pub struct ClaimCollateral<'info> {
 
     //program
     pub system_program: Program<'info, System>
+}
+
+
+impl<'info> ClaimCollateral<'info> {
+    pub fn claim_protocol(&mut self) -> Result<()> {
+
+
+        Ok(())
+    }
+
+    pub fn ensure_loan_defaulted(&mut self) -> Result<()> {
+
+        //Ensure loan is funded
+        let funded_lender = self.loan_request.lender;
+
+        if funded_lender != Some(self.lender.key()) {
+            return Err(ErrorCode::UnauthorizedLender.into());
+        }
+
+        let repayment_time = self.loan_request.repayment_time.ok_or(ErrorCode::NotFunded)?;
+
+        //Calculate deadline: repayment_time + (duration_days * 86400 seconds)
+        let duration_seconds = self.loan_request.duration_days
+                    .checked_mul(86400)
+                    .ok_or(ErrorCode::Overflow)? as i64;
+        
+        let deadline = repayment_time
+            .checked_add(duration_seconds)
+            .ok_or(ErrorCode::Overflow)?;
+
+        let clock = Clock::get()?;
+
+        if clock.unix_timestamp <= deadline {
+            return Err(ErrorCode::LoanIsNotExpired.into());
+        }
+        
+        Ok(())
+    }
+
+    pub fn get_collateral(&mut self) -> Result<(u64)> {
+
+        let vault_lamports = self.collateral_vault.to_account_info().lamports();
+
+        if vault_lamports == 0 {
+            return Err(ErrorCode::NoCollateral.into());
+        } 
+
+        Ok((vault_lamports))
+    }
+
+    pub fn transfer_collateral(&mut self, total_amount: u64) -> Result<()> {
+
+        //Calculate fee as 10% of total amount
+        let fee = total_amount
+                .checked_div(10)
+                .ok_or(ErrorCode::Overflow)?;
+
+        let lender_amount = total_amount
+                .checked_sub(fee)
+                .ok_or(ErrorCode::Overflow)?;
+
+        
+        //Derive the seeds for the collateral vault PDA to sign the CPI.
+        let collateral_vault_seeds = &[&[
+            b"collateral_vault".as_ref(),
+            self.loan_request.key().as_ref(),
+            &[self.collateral_vault.bump]
+        ]];
+
+
+
+        //Transfer 90% to the lender
+        let cpi_accounts = Transfer {
+            from: self.collateral_vault.to_account_info(),
+            to: self.lender.to_account_info()
+        };
+
+        let cpi_program = self.system_program.to_account_info();
+
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, collateral_vault_seeds);
+
+        transfer(cpi_ctx, lender_amount)?;
+        
+        
+        Ok(())
+    }
 }
