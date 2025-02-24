@@ -1,22 +1,23 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program::{transfer, Transfer};
+use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2};
 
-use crate::state::{CollateralVaultState, LoanRegistryState, ProtocolVaultState};
+use crate::state::{ CollateralVaultState, LoanRegistryState, LoanRequestState, ProtocolVaultState};
+
+use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
 pub struct LiquidateLoan<'info> {
 
-    //signers
-    #[account(mut)]
-    pub borrower: Signer<'info>,
 
     #[account(mut)]
     pub lender: Signer<'info>,
 
     #[account(
         mut,
-        close = borrower
+        close = lender
     )]
-    pub loan_request: Box<Account<'info, LoanRegistryState>>,
+    pub loan_request: Box<Account<'info, LoanRequestState>>,
 
     #[account(
         mut,
@@ -39,14 +40,62 @@ pub struct LiquidateLoan<'info> {
     )]
     pub protocol_vault: Box<Account<'info, ProtocolVaultState>>,
 
+    //lender account (receives SOL)
+    #[account(mut)]
+    pub lender_account: SystemAccount<'info>,
 
-    #[account(
-        address = "YOUR SOL PRICE FEED ADDRESS GOES HERE"
-    )]
-    pub sol_price_feed: AccountInfo<'info>,
+
+    pub price_update: Account<'info, PriceUpdateV2>,
 
     //program
     pub system_program: Program<'info, System>,
 
     
+}
+
+
+//implementation
+impl<'info> LiquidateLoan<'info> {
+    pub fn liquidate_loan(&mut self) -> Result<()> {
+        let sol_price = self.get_current_sol_price()?;
+        let collateral_value = self.collateral_vault.to_account_info().lamports();
+        let collateral_usd_value = collateral_value * sol_price;
+
+        let liquidation_threshold = self.loan_request.loan_amount * 110 / 100;
+        require!(collateral_usd_value < liquidation_threshold, ErrorCode::CannotLiquidateYet);
+
+        // Calculate lender and protocol fee amounts
+        let lender_amount = collateral_value * 108 / 110;
+        let protocol_fee = collateral_value - lender_amount;
+
+        // Transfer funds
+        self.transfer_funds(self.lender.to_account_info(), lender_amount)?;
+        self.transfer_funds(self.protocol_vault.to_account_info(), protocol_fee)?;
+
+        Ok(())
+        
+    }
+
+
+     /// Fetch current SOL price from Pyth
+     fn get_current_sol_price(&self) -> Result<u64> {
+        let maximum_age: u64 = 30;
+        const SOL_USD_HEX: &str = "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
+        
+        let feed_id = get_feed_id_from_hex(SOL_USD_HEX)?;
+        let price_data = self.price_update.get_price_no_older_than(&Clock::get()?, maximum_age, &feed_id)?;
+        
+        Ok(price_data.price as u64)
+    }
+
+    fn transfer_funds(&self, recipient: AccountInfo<'info>, amount: u64) -> Result<()> {
+        let cpi_accounts = Transfer {
+            to: recipient,
+            from: self.collateral_vault.to_account_info(),
+        };
+
+        let cpi_ctx = CpiContext::new(self.system_program.to_account_info(), cpi_accounts);
+
+        transfer(cpi_ctx, amount) 
+    }
 }
