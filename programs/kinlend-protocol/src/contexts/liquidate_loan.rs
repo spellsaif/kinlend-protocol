@@ -62,6 +62,8 @@ impl<'info> LiquidateLoan<'info> {
         self.transfer_funds(self.lender.to_account_info(), lender_amount)?;
         self.transfer_funds(self.protocol_vault.to_account_info(), protocol_fee)?;
 
+        self.remove_loan_from_registry()?;
+
         Ok(())
         
     }
@@ -111,5 +113,53 @@ impl<'info> LiquidateLoan<'info> {
         let cpi_ctx = CpiContext::new(self.system_program.to_account_info(), cpi_accounts);
 
         transfer(cpi_ctx, amount) 
+    }
+
+
+    fn remove_loan_from_registry(&mut self) -> Result<()> {
+        let mut current_page = match self.loan_registry.first_page {
+            Some(page) => page,
+            None => return Ok(()), // No pages exist, nothing to remove
+        };
+
+        let mut prev_page: Option<AccountInfo<'info>> = None;
+
+        loop {
+            let page_account = Account::<'info, LoanRegistryPageState>::try_from(
+                &self.loan_registry.to_account_info().owner.clone()
+            )?;
+
+            // Check if this page contains the loan_request
+            if let Some(index) = page_account.loan_requests.iter().position(|&x| x == self.loan_request.key()) {
+                page_account.loan_requests.remove(index); // Remove loan_request from the list
+
+                // If the page is now empty, remove it from the linked list
+                if page_account.loan_requests.is_empty() {
+                    match prev_page {
+                        Some(prev_page_account) => {
+                            let mut prev_page_data = Account::<LoanRegistryPageState>::try_from(&prev_page_account)?;
+                            prev_page_data.next_page = page_account.next_page; // Skip the empty page
+                        }
+                        None => {
+                            self.loan_registry.first_page = page_account.next_page; // Update first_page if it's the first page
+                        }
+                    }
+                }
+
+                self.loan_registry.total_loans -= 1; // Decrease the total loan count
+
+                return Ok(());
+            }
+
+            // Move to next page
+            if let Some(next_page) = page_account.next_page {
+                prev_page = Some(page_account.to_account_info());
+                current_page = next_page;
+            } else {
+                break;
+            }
+        }
+
+        Ok(())
     }
 }
