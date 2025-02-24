@@ -110,11 +110,13 @@ impl<'info> ClaimCollateral<'info> {
 
         
         //Derive the seeds for the collateral vault PDA to sign the CPI.
-        let collateral_vault_seeds = &[&[
-            b"collateral_vault".as_ref(),
+        let collateral_vault_seeds:&[&[u8]] = &[
+            b"collateral_vault",
             self.loan_request.key().as_ref(),
             &[self.collateral_vault.bump]
-        ]];
+        ];
+
+        let seed_signer = &[collateral_vault_seeds];
 
 
 
@@ -126,7 +128,7 @@ impl<'info> ClaimCollateral<'info> {
 
         let cpi_program = self.system_program.to_account_info();
 
-        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, collateral_vault_seeds);
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, seed_signer);
 
         transfer(cpi_ctx, lender_amount)?;
         
@@ -139,7 +141,7 @@ impl<'info> ClaimCollateral<'info> {
 
         let cpi_program = self.system_program.to_account_info();
 
-        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, collateral_vault_seeds);
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, seed_signer);
 
         transfer(cpi_ctx, fee)?;
 
