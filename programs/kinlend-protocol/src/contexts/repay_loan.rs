@@ -75,6 +75,12 @@ impl<'info> RepayLoan<'info> {
         //can only be repaid by the borrower who has taken loan 
         self.check_right_borrower()?;
 
+        //checking deadline
+
+        //checking usdc_mint
+        self.check_usdc_mint_address()?;
+
+
         Ok(())
     }
 
@@ -88,4 +94,16 @@ impl<'info> RepayLoan<'info> {
 
         Ok(())
     }
+
+    pub fn check_usdc_mint_address(&mut self) -> Result<()> {
+
+        if self.config.usdc_mint != self.usdc_mint.key() {
+            return Err(ErrorCode::IncorrectUsdcMintAddress.into());
+        }
+
+        Ok(())
+    }
+
+
+    
 }
