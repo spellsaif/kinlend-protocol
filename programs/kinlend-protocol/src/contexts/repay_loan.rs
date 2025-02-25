@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
 use crate::helpers::{check_balance, check_deadline, check_right_borrower, check_usdc_mint_address};
-use crate::state::{loan_request, CollateralVaultState, ConfigState, LoanRequestState, ProtocolVaultState};
+use crate::state::{ CollateralVaultState, ConfigState, LoanRequestState};
 
 use crate::errors::ErrorCode;
 
