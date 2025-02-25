@@ -84,7 +84,10 @@ impl<'info> RepayLoan<'info> {
         check_deadline(deadline)?;
 
         //checking usdc_mint
-        check_usdc_mint_address(self.config.usdc_mint, self.usdc_mint.key())?;
+        let config_usdc_mint = self.config.usdc_mint;
+        let usdc_mint = self.usdc_mint.key();
+        check_usdc_mint_address(config_usdc_mint, usdc_mint)?;
+
 
 
         Ok(())
