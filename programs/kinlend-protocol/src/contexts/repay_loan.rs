@@ -3,6 +3,8 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::state::{CollateralVaultState, ConfigState, LoanRequestState, ProtocolVaultState};
 
+use crate::errors::ErrorCode;
+
 #[derive(Accounts)]
 pub struct RepayLoan<'info> {
 
@@ -63,4 +65,27 @@ pub struct RepayLoan<'info> {
     pub token_program: Program<'info, Token>,
 
     pub system_program: Program<'info, System>,
+}
+
+
+impl<'info> RepayLoan<'info> {
+
+    pub fn repay_loan(&mut self) -> Result<()> {
+
+        //can only be repaid by the borrower who has taken loan 
+        self.check_right_borrower()?;
+
+        Ok(())
+    }
+
+    pub fn check_right_borrower(&mut self) -> Result<()> {
+
+        let borrower = self.borrower.key();
+
+        if borrower != self.loan_request.borrower {
+            return Err(ErrorCode::NotRightBorrower.into());
+        }
+
+        Ok(())
+    }
 }
