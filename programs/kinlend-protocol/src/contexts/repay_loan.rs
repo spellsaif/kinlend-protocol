@@ -110,7 +110,7 @@ impl<'info> RepayLoan<'info> {
         let deadline = self.loan_request.repayment_time.unwrap();
 
         if clock.unix_timestamp > deadline {
-            return Err(ErrorCode::LoanExpired.into());
+            return Err(ErrorCode::RepaymentTimeExpired.into());
         }
 
 
