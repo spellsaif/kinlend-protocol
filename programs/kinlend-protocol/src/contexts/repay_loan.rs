@@ -90,9 +90,10 @@ impl<'info> RepayLoan<'info> {
         check_right_borrower(borrower, loan_request_borrower)?;
 
         //checking deadline
-        let deadline = self.loan_request.repayment_time.unwrap();
+        let repayment_time = self.loan_request.repayment_time.unwrap();
+        let duration_days = self.loan_request.duration_days;
 
-        check_deadline(deadline)?;
+        check_deadline(repayment_time, duration_days)?;
         
         //checking usdc_mint
         let config_usdc_mint = self.config.usdc_mint;
