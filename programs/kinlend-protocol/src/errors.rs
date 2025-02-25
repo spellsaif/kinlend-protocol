@@ -57,4 +57,7 @@ pub enum ErrorCode {
     #[msg("Insufficient Balance")]
     InsufficientBalance,
 
+    #[msg("Not a right lender")]
+    NotRightLender,
+
 }
