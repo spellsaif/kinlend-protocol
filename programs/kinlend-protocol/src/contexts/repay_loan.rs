@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
-use crate::state::{CollateralVaultState, ConfigState, LoanRequestState, ProtocolVaultState};
+use crate::helpers::{check_deadline, check_right_borrower, check_usdc_mint_address};
+use crate::state::{loan_request, CollateralVaultState, ConfigState, LoanRequestState, ProtocolVaultState};
 
 use crate::errors::ErrorCode;
 
@@ -73,50 +74,21 @@ impl<'info> RepayLoan<'info> {
     pub fn repay_loan(&mut self) -> Result<()> {
 
         //can only be repaid by the borrower who has taken loan 
-        self.check_right_borrower()?;
+        let borrower = self.borrower.key();
+        let loan_request_borrower = self.loan_request.borrower;
+        check_right_borrower(borrower, loan_request_borrower)?;
 
         //checking deadline
-        self.check_deadline()?;
-
-        //checking usdc_mint
-        self.check_usdc_mint_address()?;
-
-
-        Ok(())
-    }
-
-    pub fn check_right_borrower(&mut self) -> Result<()> {
-
-        let borrower = self.borrower.key();
-
-        if borrower != self.loan_request.borrower {
-            return Err(ErrorCode::NotRightBorrower.into());
-        }
-
-        Ok(())
-    }
-
-    pub fn check_usdc_mint_address(&mut self) -> Result<()> {
-
-        if self.config.usdc_mint != self.usdc_mint.key() {
-            return Err(ErrorCode::IncorrectUsdcMintAddress.into());
-        }
-
-        Ok(())
-    }
-
-    pub fn check_deadline(&mut self) -> Result<()> {
-        let clock = Clock::get()?;
         let deadline = self.loan_request.repayment_time.unwrap();
 
-        if clock.unix_timestamp > deadline {
-            return Err(ErrorCode::RepaymentTimeExpired.into());
-        }
+        check_deadline(deadline)?;
+
+        //checking usdc_mint
+        check_usdc_mint_address(self.config.usdc_mint, self.usdc_mint.key())?;
 
 
         Ok(())
     }
-
 
     
 }
