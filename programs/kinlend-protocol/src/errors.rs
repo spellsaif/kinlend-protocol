@@ -48,4 +48,7 @@ pub enum ErrorCode {
     #[msg("You are not a right borrower")]
     NotRightBorrower,
 
+    #[msg("Incorrect USDC Mint address")]
+    IncorrectUsdcMintAddress,
+
 }
