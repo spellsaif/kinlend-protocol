@@ -104,6 +104,12 @@ impl<'info> RepayLoan<'info> {
         Ok(())
     }
 
+    pub fn check_deadline(&mut self) -> Result<()> {
+
+
+        Ok(())
+    }
+
 
     
 }
