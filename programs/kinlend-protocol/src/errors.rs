@@ -54,4 +54,7 @@ pub enum ErrorCode {
     #[msg("Repayment time expired.")]
     RepaymentTimeExpired,
 
+    #[msg("Insufficient Balance")]
+    InsufficientBalance,
+
 }
