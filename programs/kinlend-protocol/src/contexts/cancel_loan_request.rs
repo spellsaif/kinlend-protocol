@@ -56,7 +56,7 @@ impl<'info> CancelLoanRequest<'info> {
     }
 
     //checking whether loan is funded or not
-    pub fn check_loan_funded(&mut self) -> Result<()> {
+    fn check_loan_funded(&mut self) -> Result<()> {
 
         if self.loan_request.lender.is_some() {
             return Err(ErrorCode::AlreadyFunded.into());
