@@ -69,6 +69,8 @@ impl<'info> LiquidateLoan<'info> {
         
     }
 
+    
+
     //Checking if it is eligible for liquidation
     fn ensure_liquidate_eligible(&self) -> Result<()> {
         let sol_price = self.get_current_sol_price()?;
