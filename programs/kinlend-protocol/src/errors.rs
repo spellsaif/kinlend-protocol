@@ -51,4 +51,7 @@ pub enum ErrorCode {
     #[msg("Incorrect USDC Mint address")]
     IncorrectUsdcMintAddress,
 
+    #[msg("Repayment time expired.")]
+    RepaymentTimeExpired,
+
 }
