@@ -45,4 +45,7 @@ pub enum ErrorCode {
     #[msg("Collateral Not Found")]
     NoCollateral,
 
+    #[msg("You are not a right borrower")]
+    NotRightBorrower,
+
 }
