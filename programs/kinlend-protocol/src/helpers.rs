@@ -25,7 +25,7 @@ pub fn check_deadline(repayment_time: i64, duration_days: u64) -> Result<()> {
 
     Ok(())
 }
-}
+
 
 
 pub fn check_right_borrower(borrower: Pubkey, loan_request_borrower: Pubkey) -> Result<()> {
