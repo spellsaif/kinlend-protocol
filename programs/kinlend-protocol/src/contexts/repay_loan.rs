@@ -159,8 +159,6 @@ impl<'info> RepayLoan<'info> {
 
         transfer(cpi_ctx, lender_amount)?;
 
-        Ok(())
-
 
         //doing same for transferring usdc to protocol vault usdc account
         let cpi_accounts = Transfer {
