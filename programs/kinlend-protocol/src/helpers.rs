@@ -35,7 +35,7 @@ pub fn check_usdc_mint_address(config_usdc_mint:Pubkey, usdc_mint:Pubkey) -> Res
 }
 
 
-pub fn check_balance(balance: u64, total_amounts:u64) -> Result<()> {
+pub fn check_balance(balance: u64, total_amount:u64) -> Result<()> {
         
         if balance < total_amounts {
             return Err(ErrorCode::InsufficientBalance.into());
