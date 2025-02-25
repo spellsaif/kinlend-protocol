@@ -5,6 +5,7 @@ declare_id!("CqzdqFZSNhvPUjPUKT141iQNvBcUzMjRgmWJ6MTWF21c");
 mod contexts;
 mod state;
 mod errors;
+mod helpers;
 
 #[program]
 pub mod kinlend_protocol {
