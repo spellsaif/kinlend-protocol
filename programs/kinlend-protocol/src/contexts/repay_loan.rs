@@ -76,6 +76,7 @@ impl<'info> RepayLoan<'info> {
         self.check_right_borrower()?;
 
         //checking deadline
+        self.check_deadline()?;
 
         //checking usdc_mint
         self.check_usdc_mint_address()?;
@@ -105,6 +106,12 @@ impl<'info> RepayLoan<'info> {
     }
 
     pub fn check_deadline(&mut self) -> Result<()> {
+        let clock = Clock::get()?;
+        let deadline = self.loan_request.repayment_time.unwrap();
+
+        if clock.unix_timestamp > deadline {
+            return Err(ErrorCode::LoanExpired.into());
+        }
 
 
         Ok(())
