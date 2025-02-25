@@ -2,15 +2,19 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
+use crate::helpers::check_usdc_mint_address;
 use crate::state::{ConfigState, LoanRequestState};
 use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
 #[instruction(loan_id: u64)]
 pub struct FundLoan<'info> {
+    /// The lender funding the loan. Must sign the transaction.
     #[account(mut)]
     pub lender: Signer<'info>,
 
+    /// Configuration account storing protocol settings.
+    /// It is a PDA seeded with "config".
     #[account(
         mut,
         seeds = [b"config"],
@@ -18,6 +22,9 @@ pub struct FundLoan<'info> {
     )]
     pub config: Box<Account<'info, ConfigState>>,
 
+    /// Loan Request account representing the loan.
+    /// It is a PDA derived using the borrower's key and the loan_id.
+    /// This account is mutable and its funds will be closed to the lender upon funding.
     #[account(
         mut,
         seeds = [b"loan_request", loan_request.borrower.as_ref(), &loan_id.to_le_bytes()],
@@ -25,19 +32,21 @@ pub struct FundLoan<'info> {
     )]
     pub loan_request: Box<Account<'info, LoanRequestState>>,
 
-    //The Borrower receives USDC
+    /// Borrower’s main account (system account). 
+    /// This account will receive USDC tokens through its associated token account.
     #[account(mut)]
     pub borrower: SystemAccount<'info>,
 
-    //Lender's associated token account
+    /// Lender's USDC associated token account.
     #[account(
         mut,
-        constraint = lender_usdc_account.mint == config.usdc_mint,
+        constraint = lender_usdc_account.mint == usdc_mint.key(),
         constraint = lender_usdc_account.owner == lender.key()
     )]
     pub lender_usdc_account: Box<Account<'info, TokenAccount>>,
 
-    //Borrower's associated token account
+    /// Borrower’s USDC associated token account.
+    /// This account is initialized if needed and is derived from the borrower's address.
     #[account(
         init_if_needed,
         payer = lender,
@@ -46,38 +55,65 @@ pub struct FundLoan<'info> {
     )]
     pub borrower_usdc_account: Box<Account<'info, TokenAccount>>,
 
+    /// The USDC Mint account.
     pub usdc_mint: Account<'info, Mint>,
 
+    /// Program for token operations.
     pub token_program: Program<'info, Token>,
+    /// Program for associated token account operations.
     pub associated_token_program: Program<'info, AssociatedToken>,
+    /// System program.
     pub system_program: Program<'info, System>,
-
 }
 
 impl<'info> FundLoan<'info> {
     pub fn fund_loan(&mut self) -> Result<()> {
-    
-        //Loan Request Account
-        let loan_request = &mut self.loan_request;
-        
-        require!(loan_request.lender.is_none(), ErrorCode::AlreadyFunded);
+        // Ensure the loan hasn't already been funded.
+        self.verify_not_funded()?;
 
-        //storing the lender in the loan request
-        loan_request.lender = Some(self.lender.key());
+        // Check that the provided USDC mint matches the one in the config.
+        self.verify_usdc_mint()?;
 
-        // Transfer USDC from lender to borrower
-        let cpi_accounts = Transfer{
-            from: self.lender_usdc_account.to_account_info(),
-            to: self.borrower_usdc_account.to_account_info(),
-            authority: self.lender.to_account_info()
-        };
+        //Record the lender in the loan request.
+        self.update_loan_request_with_lender()?;
 
-        let cpi_program = self.token_program.to_account_info();
-
-        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-
-        transfer(cpi_ctx, loan_request.loan_amount)?;
+        //Transfer USDC from the lender's token account to the borrower's token account.
+        self.transfer_usdc_funds(self.loan_request.loan_amount)?;
 
         Ok(())
+    }
+
+    /// Verifies that the loan request has not yet been funded.
+    fn verify_not_funded(&self) -> Result<()> {
+        // loan_request.lender must be None before funding.
+        require!(self.loan_request.lender.is_none(), ErrorCode::AlreadyFunded);
+        Ok(())
+    }
+
+    /// Verifies that the USDC mint provided in the instruction matches the configuration.
+    fn verify_usdc_mint(&self) -> Result<()> {
+        // Retrieve the USDC mint from config and compare it to the provided usdc_mint.
+        let config_usdc_mint = self.config.usdc_mint;
+        let provided_usdc_mint = self.usdc_mint.key();
+        check_usdc_mint_address(config_usdc_mint, provided_usdc_mint)
+    }
+
+    /// Updates the loan request state by storing the lender's public key.
+    fn update_loan_request_with_lender(&mut self) -> Result<()> {
+        self.loan_request.lender = Some(self.lender.key());
+        Ok(())
+    }
+
+    /// Transfers USDC from the lender's associated token account to the borrower's associated token account.
+    /// The amount transferred equals the loan amount specified in the loan request.
+    fn transfer_usdc_funds(&self, amount: u64) -> Result<()> {
+        let cpi_accounts = Transfer {
+            from: self.lender_usdc_account.to_account_info(),
+            to: self.borrower_usdc_account.to_account_info(),
+            authority: self.lender.to_account_info(),
+        };
+
+        let cpi_ctx = CpiContext::new(self.token_program.to_account_info(), cpi_accounts);
+        transfer(cpi_ctx, amount)
     }
 }
