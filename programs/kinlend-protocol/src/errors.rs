@@ -60,4 +60,7 @@ pub enum ErrorCode {
     #[msg("Not a right lender")]
     NotRightLender,
 
+    #[msg("NotAdmin")]
+    NotAdmin,
+
 }
