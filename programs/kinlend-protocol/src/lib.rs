@@ -13,7 +13,7 @@ use crate::contexts::CreateLoanRequest;
 pub mod kinlend_protocol {
 
 
-    use contexts::CancelLoanRequest;
+    use contexts::{CancelLoanRequest, FundLoan};
 
     use super::*;
 
@@ -42,6 +42,11 @@ pub mod kinlend_protocol {
     //Instruction for cancelling Loan request by borrower
     pub fn cancel_loan_request(ctx:Context<CancelLoanRequest>) -> Result<()> {
         ctx.accounts.cancel_loan_request()
+    }
+
+    //instruction for funding loan by by lender
+    pub fn fund_loan(ctx:Context<FundLoan>) -> Result<()> {
+        ctx.accounts.fund_loan()
     }
 
 
