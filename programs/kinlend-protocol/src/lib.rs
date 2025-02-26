@@ -54,6 +54,11 @@ pub mod kinlend_protocol {
         ctx.accounts.repay_loan()
     }
 
+    //Instruction for liquidating Loan
+    pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
+        ctx.accounts.liquidate_loan()
+    }
+
     //Instruction for creating Protocol Vault which for receiving SOL as FEE
     pub fn create_protocol_vault(ctx:Context<CreateProtocolVault>) -> Result<()> {
         ctx.accounts.create_protocol_vault(ctx.bumps)
