@@ -13,7 +13,7 @@ use crate::contexts::CreateLoanRequest;
 pub mod kinlend_protocol {
 
 
-    use contexts::{CancelLoanRequest, CreateLoanRegistry, FundLoan, InitConfig, RepayLoan, UpdateConfig};
+    use contexts::{CancelLoanRequest, CreateLoanRegistry, CreateProtocolVault, FundLoan, InitConfig, RepayLoan, UpdateConfig};
 
     use super::*;
 
@@ -44,15 +44,20 @@ pub mod kinlend_protocol {
         ctx.accounts.cancel_loan_request()
     }
 
-    //instruction for funding loan by by lender
+    //Instruction for funding loan by by lender
     pub fn fund_loan(ctx:Context<FundLoan>) -> Result<()> {
         ctx.accounts.fund_loan()
     }
 
 
-    //instruction for repaying loan by borrower
+    //Instruction for repaying loan by borrower
     pub fn repay_loan(ctx: Context<RepayLoan>) -> Result<()> {
         ctx.accounts.repay_loan()
+    }
+
+    //Instruction for creating Protocol Vault which for receiving SOL as FEE
+    pub fn create_protocol_vault(ctx:Context<CreateProtocolVault>) -> Result<()> {
+        ctx.accounts.create_protocol_vault(ctx.bumps)
     }
 
     // ADMIN ONLY: instruction for configuring usdc mint key
