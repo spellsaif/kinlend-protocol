@@ -13,7 +13,7 @@ use crate::contexts::CreateLoanRequest;
 pub mod kinlend_protocol {
 
 
-    use contexts::{CancelLoanRequest, FundLoan, InitConfig, RepayLoan, UpdateConfig};
+    use contexts::{CancelLoanRequest, CreateLoanRegistry, FundLoan, InitConfig, RepayLoan, UpdateConfig};
 
     use super::*;
 
@@ -64,6 +64,12 @@ pub mod kinlend_protocol {
     pub fn update_config(ctx:Context<UpdateConfig>) -> Result<()> {
         ctx.accounts.update_config()
     }
+
+    //Instruction for creating LoanRegistry which store Loan Requests
+    pub fn create_loan_registry(ctx:Context<CreateLoanRegistry>) -> Result<()> {
+        ctx.accounts.create_loan_registry()
+    }
+
     
 
 }
