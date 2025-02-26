@@ -7,13 +7,12 @@ pub mod state;
 pub mod errors;
 pub mod helpers;
 
-use crate::contexts::CreateLoanRequest;
+use contexts::{CancelLoanRequest, CreateLoanRegistry, CreateProtocolVault, FundLoan, InitConfig, RepayLoan, UpdateConfig};
 
 #[program]
 pub mod kinlend_protocol {
 
 
-    use contexts::{CancelLoanRequest, CreateLoanRegistry, CreateProtocolVault, FundLoan, InitConfig, RepayLoan, UpdateConfig};
 
     use super::*;
 
