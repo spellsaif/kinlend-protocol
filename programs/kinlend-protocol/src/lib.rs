@@ -2,20 +2,37 @@ use anchor_lang::prelude::*;
 
 declare_id!("CqzdqFZSNhvPUjPUKT141iQNvBcUzMjRgmWJ6MTWF21c");
 
-mod contexts;
-mod state;
-mod errors;
-mod helpers;
+pub mod contexts;
+pub mod state;
+pub mod errors;
+pub mod helpers;
+
+use crate::contexts::CreateLoanRequest;
 
 #[program]
 pub mod kinlend_protocol {
+
+
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        msg!("Greetings from: {:?}", ctx.program_id);
-        Ok(())
+    //Instruction for creating loan request by borrower
+    pub fn create_loan_request(
+        ctx:Context<CreateLoanRequest>, 
+        loan_id:u64, 
+        loan_amount:u64, 
+        collateral:u64,
+        duration_days:u64
+
+    ) -> Result<()> {
+
+        ctx.accounts.create_loan_request(
+            loan_id, 
+            loan_amount, 
+            collateral,
+            duration_days,
+            ctx.bumps
+        )
+
+
     }
 }
-
-#[derive(Accounts)]
-pub struct Initialize {}
