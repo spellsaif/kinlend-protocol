@@ -13,7 +13,7 @@ use crate::contexts::CreateLoanRequest;
 pub mod kinlend_protocol {
 
 
-    use contexts::{CancelLoanRequest, FundLoan};
+    use contexts::{CancelLoanRequest, FundLoan, RepayLoan};
 
     use super::*;
 
@@ -50,6 +50,10 @@ pub mod kinlend_protocol {
     }
 
 
+    //instruction for repaying loan by borrower
+    pub fn repay_loan(ctx: Context<RepayLoan>) -> Result<()> {
+        ctx.accounts.repay_loan()
+    }
     
 
 }
