@@ -55,7 +55,7 @@ impl<'info> ClaimCollateral<'info> {
     /// It ensures the loan is defaulted, obtains the collateral amount, and transfers:
     /// - 10% as a fee to the protocol vault,
     /// - 90% to the lender.
-    pub fn claim_protocol(&mut self) -> Result<()> {
+    pub fn claim_collateral(&mut self) -> Result<()> {
         self.ensure_loan_defaulted()?;
         let collateral_amount = self.get_collateral()?;
         self.transfer_collateral(collateral_amount)?;
