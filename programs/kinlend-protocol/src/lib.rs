@@ -2,12 +2,12 @@ use anchor_lang::prelude::*;
 
 declare_id!("CqzdqFZSNhvPUjPUKT141iQNvBcUzMjRgmWJ6MTWF21c");
 
-pub mod contexts;
-pub mod state;
 pub mod errors;
+pub mod state;
 pub mod helpers;
+pub mod contexts;
 
-use contexts::{CancelLoanRequest, CreateLoanRegistry, CreateProtocolVault, FundLoan, InitConfig, RepayLoan, UpdateConfig};
+pub use contexts::*;
 
 #[program]
 pub mod kinlend_protocol {
