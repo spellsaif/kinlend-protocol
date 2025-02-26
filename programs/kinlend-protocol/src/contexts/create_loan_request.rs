@@ -51,7 +51,7 @@ pub struct CreateLoanRequest<'info> {
         init_if_needed,
         payer = borrower,
         space = 8 + LoanRegistryPageState::INIT_SPACE,
-        seeds = [b"loan_registry_page", &loan_registry.total_loans.to_le_bytes()[..]],
+        seeds = [b"loan_registry_page", &(loan_registry.total_loans+1).to_le_bytes()[..]],
         bump
     )]
     pub new_registry_page: Option<Box<Account<'info, LoanRegistryPageState>>>,
