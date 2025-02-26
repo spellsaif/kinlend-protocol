@@ -1,4 +1,5 @@
 use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL, system_program::{transfer, Transfer}};
+use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2};
 
 use crate::{errors::ErrorCode, state::{CollateralVaultState, LoanRegistryPageState, LoanRegistryState, LoanRequestState}};
 
@@ -29,6 +30,9 @@ pub struct CreateLoanRequest<'info> {
         bump
     )]
     pub collateral_vault: Box<Account<'info, CollateralVaultState>>,
+
+    //Pyth PriceUpdateV2 account
+    pub price_update: Account<'info, PriceUpdateV2>,
 
     //Root registry Account
     #[account(
@@ -66,90 +70,125 @@ impl<'info> CreateLoanRequest<'info> {
         loan_amount: u64, 
         collateral: u64,
         duration_days: u64,
-        current_sol_price: u64,
         bumps: CreateLoanRequestBumps
 
     ) -> Result<()> {
 
-        //caculating required collateral in SOL
-        let required_sol = loan_amount
-                                .checked_mul(150).ok_or(ErrorCode::CalculationError)?
-                                .checked_div(100).ok_or(ErrorCode::CalculationError)?
-                                .checked_div(current_sol_price).ok_or(ErrorCode::CalculationError)?;
+        //retrieve current sol price from pyth oracle
+        let current_sol_price = self.get_current_sol_price()?;
 
-        //Checking whether enough collateral is provided against borrowing amount.
+        //Calculate required collateral in SOL
+        let required_sol = self.calculate_required_collateral(loan_amount, current_sol_price)?;
+
+        
+        //Ensure enough collateral provided
+        self.verify_collateral(collateral, required_sol)?;
+
+
+        //Initialize LoanRequestState Account
+        self.initialize_loan_request(loan_id, loan_amount, collateral, duration_days)?;
+
+        //Initialize CollateralVaultState Account
+        self.initialize_collateral(bumps.collateral_vault)?;
+
+        //Transfer collateral from borrower to collateral_vault PDA
+        self.transfer_collateral_to_vault(collateral)?;
+
+
+        //Update or add to LoanRegistryState
+        self.update_loan_registry()?;
+
+        //Incrementing total loans
+        self.loan_registry.total_loans = self.loan_registry.total_loans.checked_add(1).ok_or(ErrorCode::CalculationError)?;
+
+
+        Ok(())
+    }
+    
+    fn get_current_sol_price(&self) -> Result<u64> {
+        let max_age = 30;
+        // We use the same SOL/USD hex id
+        const SOL_USD_HEX: &str = "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
+        let feed_id = get_feed_id_from_hex(SOL_USD_HEX)?;
+        let clock = Clock::get()?;
+        let price_data = self.price_update.get_price_no_older_than(&clock, max_age, &feed_id)?;
+        Ok(price_data.price as u64)
+    }
+    
+    fn calculate_required_collateral(&self, loan_amount: u64, current_sol_price: u64) -> Result<u64> {
+        
+        let required_collateral = loan_amount
+            .checked_mul(150).ok_or(ErrorCode::CalculationError)?
+            .checked_div(100).ok_or(ErrorCode::CalculationError)?
+            .checked_div(current_sol_price).ok_or(ErrorCode::CalculationError)?;
+
+        Ok(required_collateral)
+
+
+    }
+    
+    fn verify_collateral(&self, collateral: u64, required_sol: u64) -> Result<()> {
+        
         require!(collateral >= required_sol, ErrorCode::InsuffientCollateral);
-        let borrower = &self.borrower;
 
-        //Creating LoanRequestState Account which holds all the information regarding particular loan request
-        self.loan_request.set_inner(LoanRequestState {
+        Ok(())
+    }
+    
+    fn initialize_loan_request(&mut self, loan_id: u64, loan_amount: u64, collateral: u64, duration_days: u64) -> Result<()> {
+        self.loan_request.set_inner(LoanRequestState{
             loan_id,
             loan_amount,
-            duration_days,
             collateral,
-            borrower: borrower.key(),
+            duration_days,
+            borrower: self.borrower.key(),
             lender: None,
             repayment_time: None
         });
 
-        //Creating CollateralVaultState
+        Ok(())
+    }
+    
+    fn initialize_collateral(&mut self, bump:u8) -> Result<()> {
         self.collateral_vault.set_inner(CollateralVaultState{
-            bump: bumps.collateral_vault
+            bump
         });
 
-
-        //transferring collateral from borrower's wallet to collateral vault
-
-        //Accounts needed
+        Ok(())
+    }
+    
+    fn transfer_collateral_to_vault(&mut self, collateral: u64) -> Result<()> {
+        
         let cpi_accounts = Transfer{
             from: self.borrower.to_account_info(),
             to: self.collateral_vault.to_account_info()
         };
 
-        //System Program for making cpi calls
-        let cpi_program = self.system_program.to_account_info();
+        let cpi_programs = self.system_program.to_account_info();
 
-        //cpi context
-        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        let cpi_ctx = CpiContext::new(cpi_programs, cpi_accounts);
 
-        //now initiating transfer
-        transfer(cpi_ctx, collateral * LAMPORTS_PER_SOL)?;
+        transfer(cpi_ctx, collateral.checked_mul(LAMPORTS_PER_SOL).ok_or(ErrorCode::CalculationError)?)
 
-
-        //adding to LoanRegistryPage
+    }
+    
+    fn update_loan_registry(&mut self) -> Result<()> {
+        
         if let Some(page) = self.loan_registry_page.as_mut() {
-            //Add to current page if it's not full
             if page.loan_requests.len() < 10 {
                 page.loan_requests.push(self.loan_request.key());
             } else {
-                //if page is full, new registry page
                 let new_page = self.new_registry_page.as_mut().ok_or(ErrorCode::PageIsFull)?;
-
-                //Linking new page from full one
                 page.next_page = Some(new_page.key());
-
-                //adding loan request to new page
                 new_page.loan_requests.push(self.loan_request.key());
-
             }
         } else {
-            
-            //if no loan registry page exists, use the new page
-            let new_page =  self.loan_registry_page.as_mut().ok_or(ErrorCode::PageIsFull)?;
-
-            //if not first page exists, make this first page in loan registry
+            let new_page = self.new_registry_page.as_mut().ok_or(ErrorCode::PageIsFull)?;
             if self.loan_registry.first_page.is_none() {
                 self.loan_registry.first_page = Some(new_page.key());
             }
-
-            //add loan request to new page
             new_page.loan_requests.push(self.loan_request.key());
         }
-
-
-        self.loan_registry.total_loans += 1;
-
-
         Ok(())
     }
+
 }
