@@ -59,6 +59,7 @@ pub struct RepayLoan<'info> {
 
 
     //authority for protocol_vault_usdc
+    ///CHECK: only used as authority for protocol_vault_usdc
     #[account(
         seeds = [b"protocol_vault_usdc_authority"],
         bump
