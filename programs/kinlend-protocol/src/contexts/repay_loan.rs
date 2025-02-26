@@ -59,6 +59,10 @@ pub struct RepayLoan<'info> {
 
 
     //authority for protocol_vault_usdc
+    #[account(
+        seeds = [b"protocol_vault_usdc_authority"],
+        bump
+    )]
     pub protocol_vault_authority: AccountInfo<'info>,
 
     //config account which stores mint address of usdc
@@ -124,7 +128,7 @@ impl<'info> RepayLoan<'info> {
     /// - lender_amount: 104% of the loan amount (USDC).
     /// - fee: 1% of the loan amount (USDC).
     /// - total_amount: Sum of the two (used for balance checks).
-    pub fn calculate_repayment_amounts(&mut self) -> Result<(u64,u64, u64)> {
+    fn calculate_repayment_amounts(&mut self) -> Result<(u64,u64, u64)> {
 
         let loan_amount = self.loan_request.loan_amount;
         let lender_amount = loan_amount
@@ -143,7 +147,7 @@ impl<'info> RepayLoan<'info> {
     }
 
 
-    pub fn transfer_tokens(&mut self, lender_amount: u64, fee:u64) -> Result<()> {
+    fn transfer_tokens(&mut self, lender_amount: u64, fee:u64) -> Result<()> {
 
         //all needed accounts
         let cpi_accounts = Transfer{
