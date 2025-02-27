@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::errors::ErrorCode;
 
 
-pub fn check_deadline(repayment_time: i64) -> Result<()> {
+pub fn check_deadline_is_expired(repayment_time: i64) -> Result<()> {
     
     // Compare current time with deadline.
     let clock = Clock::get()?;
