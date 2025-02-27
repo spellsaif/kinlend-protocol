@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-kinlend_protocol = "CqzdqFZSNhvPUjPUKT141iQNvBcUzMjRgmWJ6MTWF21c"
+kinlend_protocol = "5NYiLMkYrumBZnnjUeDQfjod1agKCCeYzFpHqCZcCjzt"
 
 [registry]
 url = "https://api.apr.dev"
