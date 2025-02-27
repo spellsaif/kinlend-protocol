@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
-use crate::helpers::check_deadline;
+use crate::helpers::check_deadline_is_expired;
 use crate::state::{
     CollateralVaultState, LoanRegistryState, LoanRequestState, ProtocolVaultState,
 };
@@ -80,7 +80,7 @@ impl<'info> ClaimCollateral<'info> {
         let repayment_time = self.loan_request.repayment_time.unwrap();
         let duration_days = self.loan_request.duration_days;
 
-        check_deadline(repayment_time, duration_days)?;
+        check_deadline_is_expired(repayment_time)?;
 
         Ok(())
     }
