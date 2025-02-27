@@ -78,7 +78,6 @@ impl<'info> ClaimCollateral<'info> {
         );
 
         let repayment_time = self.loan_request.repayment_time.unwrap();
-        let duration_days = self.loan_request.duration_days;
 
         check_deadline_is_expired(repayment_time)?;
 
