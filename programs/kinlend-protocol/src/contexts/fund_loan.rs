@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
-use crate::helpers::check_usdc_mint_address;
+use crate::helpers::{calculate_repayment_time, check_usdc_mint_address};
 use crate::state::{ConfigState, LoanRequestState};
 use crate::errors::ErrorCode;
 
@@ -107,8 +107,8 @@ impl<'info> FundLoan<'info> {
 
     /// Updates the repayment_time field with the current Unix timestamp.
     fn update_repayment_time(&mut self) -> Result<()> {
-        let clock = Clock::get()?;
-        self.loan_request.repayment_time = Some(clock.unix_timestamp);
+        let repayment_time = calculate_repayment_time(self.loan_request.duration_days)?;
+        self.loan_request.repayment_time = Some(repayment_time);
         Ok(())
     }
 
