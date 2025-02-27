@@ -3,27 +3,32 @@ use anchor_lang::prelude::*;
 use crate::errors::ErrorCode;
 
 
-pub fn check_deadline(repayment_time: i64, duration_days: u64) -> Result<()> {
+pub fn check_deadline(repayment_time: i64) -> Result<()> {
     
-    
-    // Compute the deadline: repayment_time + (duration_days * 86400 seconds)
-    // If your state already stored the deadline, this calculation is redundant.
+    // Compare current time with deadline.
+    let clock = Clock::get()?;
+    require!(
+        clock.unix_timestamp > repayment_time,
+        ErrorCode::LoanIsNotExpired
+    );
+
+    Ok(())
+}
+
+pub fn calculate_repayment_time(repayment_time: i64, duration_days: u64) -> Result<i64> {
+     // Compute the deadline: repayment_time + (duration_days * 86400 seconds)
     let duration_seconds = duration_days
                                 .checked_mul(86400)
                                 .ok_or(ErrorCode::Overflow)? as i64;
 
     let deadline = repayment_time
-                        .checked_add(duration_seconds)
-                        .ok_or(ErrorCode::Overflow)?;
+                                .checked_add(duration_seconds)
+                                .ok_or(ErrorCode::Overflow)?;
+    
 
-    // Compare current time with deadline.
-    let clock = Clock::get()?;
-    require!(
-        clock.unix_timestamp > deadline,
-        ErrorCode::LoanIsNotExpired
-    );
+    Ok(deadline)
 
-    Ok(())
+
 }
 
 
