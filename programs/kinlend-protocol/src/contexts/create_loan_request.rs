@@ -1,7 +1,7 @@
 use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL, system_program::{transfer, Transfer}};
 use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2};
 
-use crate::{errors::ErrorCode, state::{CollateralVaultState, LoanRegistryPageState, LoanRegistryState, LoanRequestState}};
+use crate::{constants::{MAX_AGE, SOL_USD_FEED_ID}, errors::ErrorCode, state::{CollateralVaultState, LoanRegistryPageState, LoanRegistryState, LoanRequestState}};
 
 #[derive(Accounts)]
 #[instruction(loan_id:u64)]
@@ -106,12 +106,9 @@ impl<'info> CreateLoanRequest<'info> {
     }
     
     fn get_current_sol_price(&self) -> Result<u64> {
-        let max_age = 30;
-        // We use the same SOL/USD hex id
-        const SOL_USD_HEX: &str = "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
-        let feed_id = get_feed_id_from_hex(SOL_USD_HEX)?;
+        let feed_id = get_feed_id_from_hex(SOL_USD_FEED_ID)?;
         let clock = Clock::get()?;
-        let price_data = self.price_update.get_price_no_older_than(&clock, max_age, &feed_id)?;
+        let price_data = self.price_update.get_price_no_older_than(&clock, MAX_AGE, &feed_id)?;
         Ok(price_data.price as u64)
     }
     
