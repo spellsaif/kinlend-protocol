@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
-use crate::helpers::{check_balance, check_deadline, check_right_borrower, check_usdc_mint_address};
+use crate::helpers::{check_balance, check_deadline_is_not_expired, check_right_borrower, check_usdc_mint_address};
 use crate::state::{ CollateralVaultState, ConfigState, LoanRequestState};
 
 use crate::errors::ErrorCode;
@@ -96,9 +96,8 @@ impl<'info> RepayLoan<'info> {
 
         //checking deadline
         let repayment_time = self.loan_request.repayment_time.unwrap();
-        let duration_days = self.loan_request.duration_days;
 
-        check_deadline(repayment_time, duration_days)?;
+        check_deadline_is_not_expired(repayment_time)?;
         
         //checking usdc_mint
         let config_usdc_mint = self.config.usdc_mint;
