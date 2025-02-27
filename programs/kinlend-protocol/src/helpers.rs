@@ -15,15 +15,19 @@ pub fn check_deadline_is_expired(repayment_time: i64) -> Result<()> {
     Ok(())
 }
 
-pub fn calculate_repayment_time(repayment_time: i64, duration_days: u64) -> Result<i64> {
-     // Compute the deadline: repayment_time + (duration_days * 86400 seconds)
+pub fn calculate_repayment_time(duration_days: u64) -> Result<i64> {
+     // Compute the deadline: now + (duration_days * 86400 seconds)
     let duration_seconds = duration_days
                                 .checked_mul(86400)
                                 .ok_or(ErrorCode::Overflow)? as i64;
 
-    let deadline = repayment_time
-                                .checked_add(duration_seconds)
-                                .ok_or(ErrorCode::Overflow)?;
+    let clock = Clock::get()?;
+    
+    let now = clock.unix_timestamp;
+
+    let deadline = duration_seconds
+                        .checked_add(now)
+                        .ok_or(ErrorCode::Overflow)?;
     
 
     Ok(deadline)
