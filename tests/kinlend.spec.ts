@@ -128,6 +128,58 @@ describe("kinlend-protocol", () => {
   });
 
 
+  it("should update config's usdcMint field", async() => {
+
+    //create new usdc mint account
+    let newUsdcMint = await createMint(
+      provider.connection,
+      adminPayer,
+      admin,
+      null,
+      6
+    );
+
+    const updateConfigTx = await program.methods
+                          .updateConfig()
+                          .accountsPartial({
+                            admin,
+                            config: configPDA,
+                            newUsdcMint,
+                            systemProgram: SYSTEM_PROGRAM_ID
+
+                          }).signers([adminPayer])
+                          .rpc({ commitment: "confirmed" });
+
+      const configAccount = await program.account.configState.fetch(configPDA);
+
+      expect(configAccount.usdcMint.toBase58()).to.equal(newUsdcMint.toBase58());
+  
+  })
+
+  it("should not update config's usdcMint field by Non Admin", async() => {
+    try {
+
+
+      await program
+            .methods
+            .updateConfig()
+            .accountsPartial({
+              admin: lender.publicKey,
+              config: configPDA,
+              systemProgram: SYSTEM_PROGRAM_ID
+
+            })
+            .signers([lender])
+            .rpc( { commitment: "confirmed" });
+        
+        assert.fail("updating config usdcMint did not fail as expected");
+
+    } catch(err: any) {
+        assert.ok("failed updating usdMint as expected")
+    }
+  })
+
+
   it("Should fails to reinitialize config PDA account ", async () => {
 
     // attempt to reinitialize the config account.
@@ -154,6 +206,10 @@ describe("kinlend-protocol", () => {
       );
     }
   });
+
+
+
+
 
 
 });
