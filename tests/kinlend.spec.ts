@@ -95,8 +95,33 @@ describe("kinlend-protocol", () => {
     program.programId
   );
 
+  const[loanRegistryPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("loan_registry")],
+    program.programId
+  );
+
+
   console.log("Config PDA:", configPDA.toBase58());
 
+
+  it("Should initialize Loan Registry PDA Account", async() => {
+    const createLoanRegistryTx = await program
+                                      .methods
+                                      .createLoanRegistry()
+                                      .accountsPartial({
+                                        admin,
+                                        loanRegistry: loanRegistryPDA,
+                                        systemProgram: SYSTEM_PROGRAM_ID,
+                                      })
+                                      .signers([adminPayer])
+                                      .rpc({ commitment: "confirmed" });
+    
+    const loanRegistry = await program.account.loanRegistryState.fetch(loanRegistryPDA);
+
+    expect(loanRegistry.totalLoans).to.equal(0);
+
+    
+})
   
 
   it("Should initialize config PDA account ", async () => {
@@ -206,6 +231,9 @@ describe("kinlend-protocol", () => {
       );
     }
   });
+
+
+  
 
 
 
