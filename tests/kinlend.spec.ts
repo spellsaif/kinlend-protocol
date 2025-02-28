@@ -1,6 +1,6 @@
 
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+import { BN, Program } from "@coral-xyz/anchor";
 import { KinlendProtocol } from "../target/types/kinlend_protocol";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { createMint } from "@solana/spl-token";
@@ -9,11 +9,10 @@ import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 import assert from "assert";
 import { expect } from "chai";
 
-describe("kinlend-protocol", () => {
+describe("KINLEND PROTOCOL", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-
   // const provider = anchor.getProvider();
   const program = anchor.workspace.KinlendProtocol as Program<KinlendProtocol>;
 
@@ -105,6 +104,7 @@ describe("kinlend-protocol", () => {
 
 
   it("Should initialize Loan Registry PDA Account", async() => {
+    const latestBlockhash = await provider.connection.getLatestBlockhash();
     const createLoanRegistryTx = await program
                                       .methods
                                       .createLoanRegistry()
@@ -118,14 +118,14 @@ describe("kinlend-protocol", () => {
     
     const loanRegistry = await program.account.loanRegistryState.fetch(loanRegistryPDA);
 
-    expect(loanRegistry.totalLoans).to.equal(0);
+    expect(loanRegistry.totalLoans.toString()).to.equal(new BN(0).toString());
 
     
 })
   
 
   it("Should initialize config PDA account ", async () => {
-    
+    const latestBlockhash = await provider.connection.getLatestBlockhash();
     // ------------------------------------------------------------------
     // TEST: Initialize Config and set admin and usdc mint address
     // This is essential for ensuring client is sending correct usdc mint account.
@@ -154,7 +154,7 @@ describe("kinlend-protocol", () => {
 
 
   it("should update config's usdcMint field", async() => {
-
+    const latestBlockhash = await provider.connection.getLatestBlockhash();
     //create new usdc mint account
     let newUsdcMint = await createMint(
       provider.connection,
@@ -182,6 +182,8 @@ describe("kinlend-protocol", () => {
   })
 
   it("should not update config's usdcMint field by Non Admin", async() => {
+    
+    const latestBlockhash = await provider.connection.getLatestBlockhash();
     try {
 
 
@@ -207,6 +209,7 @@ describe("kinlend-protocol", () => {
 
   it("Should fails to reinitialize config PDA account ", async () => {
 
+    const latestBlockhash = await provider.connection.getLatestBlockhash();
     // attempt to reinitialize the config account.
     try {
       await program.methods.initConfig()
