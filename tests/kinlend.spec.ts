@@ -2,12 +2,13 @@
 import * as anchor from "@coral-xyz/anchor";
 import { BN, Program } from "@coral-xyz/anchor";
 import { KinlendProtocol } from "../target/types/kinlend_protocol";
-import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { Keypair, LAMPORTS_PER_SOL, PublicKey, sendAndConfirmTransaction, SystemProgram } from "@solana/web3.js";
 import { createMint } from "@solana/spl-token";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 import assert from "assert";
 import { expect } from "chai";
+
 
 describe("KINLEND PROTOCOL", () => {
   // Configure the client to use the local cluster.
@@ -15,6 +16,10 @@ describe("KINLEND PROTOCOL", () => {
   anchor.setProvider(provider);
   // const provider = anchor.getProvider();
   const program = anchor.workspace.KinlendProtocol as Program<KinlendProtocol>;
+
+
+  //values
+  let loanId;
 
   //accounts
   let borrower = Keypair.generate();
@@ -89,15 +94,50 @@ describe("KINLEND PROTOCOL", () => {
     // This is essential for passing different accounts in a transactions.
     // ------------------------------------------------------------------
   
+
+    // ------------------------------------------------------------------
+   // Config PDA
+   // ------------------------------------------------------------------
   const [configPDA] = PublicKey.findProgramAddressSync(
     [Buffer.from("config")],
     program.programId
   );
 
+
+   // ------------------------------------------------------------------
+   // Loan Registry PDA
+   // ------------------------------------------------------------------  
+  
   const[loanRegistryPDA] = PublicKey.findProgramAddressSync(
     [Buffer.from("loan_registry")],
     program.programId
   );
+
+   // ------------------------------------------------------------------
+   // Loan Request PDA
+   // ------------------------------------------------------------------
+
+  loanId = 1;
+  const loanIdBuffer = Buffer.alloc(8);
+    loanIdBuffer.writeBigInt64LE(BigInt(loanId),0);
+  
+  const [loanRequestPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("loan_request"), borrower.publicKey.toBuffer(), loanIdBuffer],
+    program.programId
+  )
+
+   // ------------------------------------------------------------------
+   // Loan Request PDA
+   // ------------------------------------------------------------------
+
+   const [collateralVaultPDA, collateralVaultPDABump] = PublicKey.findProgramAddressSync(
+    [Buffer.from("collateral_vault"), loanRequestPDA.toBuffer()],
+    program.programId
+   )
+
+   const bumps = {collateralVault: collateralVaultPDABump};
+
+   
 
 
   console.log("Config PDA:", configPDA.toBase58());
@@ -236,6 +276,63 @@ describe("KINLEND PROTOCOL", () => {
   });
 
 
+  it("should create loan request PDA account and update registry", async() => {
+
+
+    //Let loanAmount = 1 USDC(1_000_000 micro USDC)
+    const loanAmount = new BN(1_000_000);
+
+    //Assume Current SOL Price is 200 USD, represented as 200_000_000 mUSDC
+
+    // required_collateral = (loan_amount * 150 * LAMPORTS_PER_SOL) / (100 * current_sol_price)
+    //                           = (1_000_000 * 150 * 1e9) / (100 * 200_000_000)
+    //                           = 7,500,000 lamports.
+    const collateral = new BN(7_500_000);
+    const noOfDays = new BN(30);
+
+
+    const latestBlockhash = await provider.connection.getLatestBlockhash();
+
+    
+    const createLoanRequestTx = await program
+                              .methods
+                              .createLoanRequest(
+                                new BN(loanId),
+                                loanAmount,
+                                collateral,
+                                noOfDays
+                              )
+                              .accountsPartial({
+                                borrower: borrower.publicKey,
+                                loanRequest: loanRequestPDA,
+                                collateralVault: collateralVaultPDA,
+                                priceUpdate: priceUpdateAccount,
+                                systemProgram: SYSTEM_PROGRAM_ID,
+                              })
+                              .signers([borrower])
+                              .rpc({ commitment: "confirmed" });
+
+
+      console.log("createLoanRequestTx: ", createLoanRequestTx);
+
+      const loanRequestAccount = await program.account.loanRequestState.fetch(loanRequestPDA);
+
+      expect(loanRequestAccount.loanId.toNumber()).to.equal(loanId);
+      expect(loanRequestAccount.loanAmount.toNumber()).to.equal(loanAmount.toNumber());
+      expect(loanRequestAccount.collateral.toNumber()).to.equal(collateral.toNumber());
+      expect(loanRequestAccount.durationDays.toNumber()).to.equal(noOfDays.toNumber());
+      expect(loanRequestAccount.borrower.toBase58()).to.equal(borrower.publicKey.toBase58());
+
+
+      const collateralVaultAccount = await program.account.collateralVaultState.fetch(collateralVaultPDA);
+      expect(collateralVaultAccount.bump).to.equal(collateralVaultPDABump);
+
+      // Fetch and verify the updated loan registry.
+    const loanRegistryAccount = await program.account.loanRegistryState.fetch(loanRegistryPDA);
+    expect(loanRegistryAccount.loanRequests.map((pk: PublicKey) => pk.toBase58()))
+      .to.include(loanRequestPDA.toBase58());
+    expect(loanRegistryAccount.totalLoans.toNumber()).to.equal(1);
+  })
   
 
 
