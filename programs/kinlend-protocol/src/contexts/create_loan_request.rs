@@ -73,6 +73,7 @@ impl<'info> CreateLoanRequest<'info> {
         loan_amount: u64, 
         collateral: u64,       // collateral provided in lamports
         duration_days: u64,
+        bumps: CreateLoanRequestBumps,
     ) -> Result<()> {
         // 1. Retrieve the current SOL price from Pyth.
         let current_sol_price = self.get_current_sol_price()?;
@@ -87,7 +88,7 @@ impl<'info> CreateLoanRequest<'info> {
         self.initialize_loan_request(loan_id, loan_amount, collateral, duration_days)?;
         
         // 5. Initialize the CollateralVault state.
-        self.initialize_collateral_vault()?;
+        self.initialize_collateral_vault(bumps.collateral_vault)?;
         
         // 6. Transfer the provided collateral from the borrower’s wallet into the collateral vault.
         self.transfer_collateral_to_vault(collateral)?;
@@ -146,9 +147,9 @@ impl<'info> CreateLoanRequest<'info> {
     }
     
     /// Initializes the CollateralVault state.
-    fn initialize_collateral_vault(&mut self) -> Result<()> {
+    fn initialize_collateral_vault(&mut self, bump:u8) -> Result<()> {
         self.collateral_vault.set_inner(CollateralVaultState {
-            bump: self.collateral_vault.bump,
+            bump
         });
         Ok(())
     }
