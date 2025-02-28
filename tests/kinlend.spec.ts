@@ -7,6 +7,7 @@ import { createMint } from "@solana/spl-token";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 import assert from "assert";
+import { expect } from "chai";
 
 describe("kinlend-protocol", () => {
   // Configure the client to use the local cluster.
@@ -117,12 +118,17 @@ describe("kinlend-protocol", () => {
 
     console.log("initConfigTx: ", initConfigTx);
 
+    const config = await program.account.configState.fetch(configPDA);
+
+    expect(config.authority.toBase58()).to.equal(admin.toBase58());
+    expect(config.usdcMint.toBase58()).to.equal(usdcMint.toBase58());
+
 
 
   });
 
 
-  it("Should failt to reinitialize config PDA account ", async () => {
+  it("Should fails to reinitialize config PDA account ", async () => {
 
     // attempt to reinitialize the config account.
     try {
@@ -150,42 +156,5 @@ describe("kinlend-protocol", () => {
   });
 
 
-
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
