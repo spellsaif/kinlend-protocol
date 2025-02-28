@@ -42,19 +42,6 @@ pub struct CreateLoanRequest<'info> {
     )]
     pub loan_registry: Box<Account<'info, LoanRegistryState>>,
 
-    //Current page where we want to insert new loan request if exists
-    #[account(mut)]
-    pub loan_registry_page: Option<Box<Account<'info, LoanRegistryPageState>>>,
-
-    //create new page if previous page is full
-    #[account(
-        init_if_needed,
-        payer = borrower,
-        space = 8 + LoanRegistryPageState::INIT_SPACE,
-        seeds = [b"loan_registry_page", &(loan_registry.total_loans+1).to_le_bytes()[..]],
-        bump
-    )]
-    pub new_registry_page: Option<Box<Account<'info, LoanRegistryPageState>>>,
 
     pub system_program: Program<'info, System>,
 
@@ -176,22 +163,8 @@ impl<'info> CreateLoanRequest<'info> {
     }
     
     fn update_loan_registry(&mut self) -> Result<()> {
-        
-        if let Some(page) = self.loan_registry_page.as_mut() {
-            if page.loan_requests.len() < 10 {
-                page.loan_requests.push(self.loan_request.key());
-            } else {
-                let new_page = self.new_registry_page.as_mut().ok_or(ErrorCode::PageIsFull)?;
-                page.next_page = Some(new_page.key());
-                new_page.loan_requests.push(self.loan_request.key());
-            }
-        } else {
-            let new_page = self.new_registry_page.as_mut().ok_or(ErrorCode::PageIsFull)?;
-            if self.loan_registry.first_page.is_none() {
-                self.loan_registry.first_page = Some(new_page.key());
-            }
-            new_page.loan_requests.push(self.loan_request.key());
-        }
+
+        self.loan_registry.loan_requests.push(self.loan_request.key());
         Ok(())
     }
 

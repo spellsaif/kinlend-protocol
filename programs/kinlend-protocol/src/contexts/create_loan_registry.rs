@@ -28,8 +28,8 @@ impl<'info> CreateLoanRegistry<'info> {
 
         //creating loan registry
         self.loan_registry.set_inner(LoanRegistryState{
-            first_page: None,
             total_loans: 0,
+            loan_requests: Vec::new()
         });
 
         Ok(())
