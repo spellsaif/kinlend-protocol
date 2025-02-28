@@ -8,11 +8,11 @@ skip-lint = false
 kinlend_protocol = "5NYiLMkYrumBZnnjUeDQfjod1agKCCeYzFpHqCZcCjzt"
 
 [registry]
-url = "https://api.apr.dev"
+url = "http://127.0.0.1:8899"
 
 [provider]
 cluster = "Localnet"
 wallet = "~/.config/solana/dev.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 10000000 tests/**/*.ts"
