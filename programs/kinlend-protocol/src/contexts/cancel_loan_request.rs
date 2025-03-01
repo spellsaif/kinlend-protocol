@@ -5,6 +5,7 @@ use crate::state::{CollateralVaultState, LoanRegistryState, LoanRequestState};
 use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
+// #[instruction(loan_id: u64)]
 pub struct CancelLoanRequest<'info> {
     
     //Borrower will be signer since borrower only has permission to cancel his/her Loan Request

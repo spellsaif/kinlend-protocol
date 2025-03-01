@@ -7,6 +7,7 @@ use crate::state::{
 use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
+#[instruction(loan_id: u64)]
 pub struct ClaimCollateral<'info> {
     /// The lender claiming collateral. Must be the one recorded as the lender in the loan request.
     #[account(mut)]
@@ -16,7 +17,7 @@ pub struct ClaimCollateral<'info> {
     /// Derived using: [b"loan_request", loan_request.borrower.as_ref(), &loan_request.loan_id.to_le_bytes()]
     #[account(
         mut,
-        seeds = [b"loan_request", loan_request.borrower.as_ref(), &loan_request.loan_id.to_le_bytes()],
+        seeds = [b"loan_request", loan_request.borrower.as_ref(), &loan_id.to_le_bytes()],
         bump
     )]
     pub loan_request: Box<Account<'info, LoanRequestState>>,

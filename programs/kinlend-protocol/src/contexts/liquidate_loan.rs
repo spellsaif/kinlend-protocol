@@ -7,6 +7,7 @@ use crate::state::{
 use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
+#[instruction(loan_id: u64)]
 pub struct LiquidateLoan<'info> {
     /// The lender initiating liquidation. Must match the lender in the loan request.
     #[account(mut)]
@@ -17,7 +18,7 @@ pub struct LiquidateLoan<'info> {
     #[account(
         mut,
         close = lender,
-        seeds = [b"loan_request", loan_request.borrower.as_ref(), &loan_request.loan_id.to_le_bytes()],
+        seeds = [b"loan_request", loan_request.borrower.as_ref(), &loan_id.to_le_bytes()],
         bump
     )]
     pub loan_request: Box<Account<'info, LoanRequestState>>,
@@ -100,16 +101,7 @@ impl<'info> LiquidateLoan<'info> {
         Ok(())
     }
 
-    /// Calculates the net collateral (excluding the rent‑exempt minimum) and derives the fee.
-    ///
-    /// Let:
-    ///   collateral_net = total collateral lamports - rent_exempt_minimum.
-    /// Then:
-    ///   protocol_fee = collateral_net * 2 / 110   (i.e. 2% of the net collateral)
-    ///   lender_net    = collateral_net - protocol_fee   (i.e. 108% of net collateral)
-    ///
-    /// When the collateral vault is closed, its entire remaining balance (including the rent‑exempt minimum)
-    /// goes to the lender. Thus, the lender ultimately receives (lender_net + rent_exempt_minimum).
+    
     fn calculate_distribution(&self) -> Result<(u64, u64)> {
         let collateral_info = self.collateral_vault.to_account_info();
         let total_collateral = collateral_info.lamports();

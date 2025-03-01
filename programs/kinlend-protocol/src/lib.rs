@@ -58,12 +58,12 @@ pub mod kinlend_protocol {
     }
 
     //Instruction for claiming collateral by Lender if Borrower fails to repay
-    pub fn claim_collateral(ctx:Context<ClaimCollateral>) -> Result<()> {
+    pub fn claim_collateral(ctx:Context<ClaimCollateral>, _loan_id:u64) -> Result<()> {
         ctx.accounts.claim_collateral()
     }
 
     //Instruction for liquidating Loan
-    pub fn liquidate_loan(ctx: Context<LiquidateLoan>, sol_price: u64) -> Result<()> {
+    pub fn liquidate_loan(ctx: Context<LiquidateLoan>, _loan_id:u64, sol_price: u64) -> Result<()> {
         ctx.accounts.liquidate_loan(sol_price)
     }
 
