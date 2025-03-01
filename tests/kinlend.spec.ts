@@ -787,7 +787,7 @@ describe("KINLEND PROTOCOL", () => {
 
       // Cancel the loan request
       await program.methods
-        .cancelLoanRequest()
+        .cancelLoanRequest(cancelLoanId)
         .accounts({
           borrower: borrower.publicKey
         })
