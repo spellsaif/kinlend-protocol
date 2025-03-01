@@ -47,7 +47,7 @@ pub mod kinlend_protocol {
     }
 
     //Instruction for funding loan by by lender
-    pub fn fund_loan(ctx:Context<FundLoan>) -> Result<()> {
+    pub fn fund_loan(ctx:Context<FundLoan>, _loan_id:u64) -> Result<()> {
         ctx.accounts.fund_loan()
     }
 

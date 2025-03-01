@@ -11,7 +11,7 @@ pub struct CreateProtocolVault<'info> {
     #[account(
         init,
         payer = admin,
-        space = ProtocolVaultState::INIT_SPACE,
+        space = 8 + ProtocolVaultState::INIT_SPACE,
         seeds = [b"protocol_vault"],
         bump
     )]
