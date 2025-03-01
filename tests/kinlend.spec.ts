@@ -118,9 +118,37 @@ describe("KINLEND PROTOCOL", () => {
     program.programId
   );
 
+  const[protocolVaultPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("protocol_vault")],
+    program.programId
+  );
+
   const bumps = {collateralVault: collateralVaultPDABump};
 
   console.log("Config PDA:", configPDA.toBase58());
+
+
+
+  it("Should initialize Protocol Vault PDA Account", async() => {
+    const latestBlockhash = await provider.connection.getLatestBlockhash();
+    try {await program
+      .methods
+      .createProtocolVault()
+      .accountsPartial({
+        admin,
+        protocolVault: protocolVaultPDA,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .signers([adminPayer])
+      .rpc({skipPreflight: true, commitment: "confirmed"});
+
+      assert.ok("created protocol vault successfully");
+    }catch(err) {
+      assert.fail("failed to create protocol vault")
+      console.log(err)
+    }
+    
+  });
 
   it("Should initialize Loan Registry PDA Account", async() => {
     const latestBlockhash = await provider.connection.getLatestBlockhash();
@@ -138,6 +166,7 @@ describe("KINLEND PROTOCOL", () => {
     const loanRegistry = await program.account.loanRegistryState.fetch(loanRegistryPDA);
     expect(loanRegistry.totalLoans.toString()).to.equal(new BN(0).toString());
   });
+
   
   it("Should initialize config PDA account", async () => {
     const latestBlockhash = await provider.connection.getLatestBlockhash();
