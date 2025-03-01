@@ -5,17 +5,18 @@ use crate::state::{CollateralVaultState, LoanRegistryState, LoanRequestState};
 use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
-// #[instruction(loan_id: u64)]
+#[instruction(loan_id: u64)]
 pub struct CancelLoanRequest<'info> {
     
     //Borrower will be signer since borrower only has permission to cancel his/her Loan Request
+    #[account(mut)]
     pub borrower: Signer<'info>,
 
     //Loan Request
     #[account(
         mut,
         close = borrower,
-        seeds = [b"loan_request", borrower.key().as_ref(), &loan_request.loan_id.to_le_bytes()],
+        seeds = [b"loan_request", borrower.key().as_ref(), &loan_id.to_le_bytes()],
         bump
     )]
     pub loan_request: Box<Account<'info, LoanRequestState>>,
@@ -50,8 +51,6 @@ impl<'info> CancelLoanRequest<'info> {
         //check loan funded or not by checking whether lender is assgined to given loan request
         self.check_loan_funded()?;
         self.remove_from_loan_registry()?;
-
-        //todo: implementing logic to remove loan_request from loan registry
 
         Ok(())
     }

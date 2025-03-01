@@ -42,7 +42,7 @@ pub mod kinlend_protocol {
 
 
     //Instruction for cancelling Loan request by borrower
-    pub fn cancel_loan_request(ctx:Context<CancelLoanRequest>) -> Result<()> {
+    pub fn cancel_loan_request(ctx:Context<CancelLoanRequest>, _loan_id:u64) -> Result<()> {
         ctx.accounts.cancel_loan_request()
     }
 

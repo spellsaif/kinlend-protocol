@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
-use crate::helpers::{calculate_repayment_time, check_usdc_mint_address};
+use crate::helpers::calculate_repayment_time;
 use crate::state::{ConfigState, LoanRequestState};
 use crate::errors::ErrorCode;
 

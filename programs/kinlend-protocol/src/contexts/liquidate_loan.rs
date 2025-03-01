@@ -23,8 +23,8 @@ pub struct LiquidateLoan<'info> {
     )]
     pub loan_request: Box<Account<'info, LoanRequestState>>,
 
-    /// Collateral Vault account (PDA) holding the collateral (in SOL).
-    /// It is marked with `close = lender` so that any lamports left after fee transfer are returned to the lender.
+    // Collateral Vault account (PDA) holding the collateral (in SOL).
+    // It is marked with `close = lender` so that any lamports left after fee transfer are returned to the lender.
     #[account(
         mut,
         close = lender,
@@ -70,7 +70,7 @@ impl<'info> LiquidateLoan<'info> {
         let (_lender_net, protocol_fee) = self.calculate_distribution()?;
         // Transfer the protocol fee from the collateral vault (PDA) to the protocol vault account.
         self.transfer_fee(protocol_fee)?;
-        //At the end of the instruction, both the loan_request and collateral_vault accounts
+        //    the end of the instruction, both the loan_request and collateral_vault accounts
         //    are closed and their remaining lamports (including rent deposits) are sent to the lender.
 
         self.remove_from_loan_registry()?;
@@ -88,7 +88,7 @@ impl<'info> LiquidateLoan<'info> {
 
     /// Checks if the loan is eligible for liquidation.
     /// Liquidation is allowed if the USD value of the collateral is below 110% of the loan amount.
-    fn ensure_liquidate_eligible(&self, sol_price: u64) -> Result<()> {
+    fn ensure_liquidate_eligible(&mut self, sol_price: u64) -> Result<()> {
         let collateral_lamports = self.collateral_vault.to_account_info().lamports();
         // Convert lamports to SOL (1 SOL = 1e9 lamports) and then to USD.
         let collateral_usd_value = (collateral_lamports as f64 / 1e9) * (sol_price as f64);
@@ -102,7 +102,7 @@ impl<'info> LiquidateLoan<'info> {
     }
 
     
-    fn calculate_distribution(&self) -> Result<(u64, u64)> {
+    fn calculate_distribution(&mut self) -> Result<(u64, u64)> {
         let collateral_info = self.collateral_vault.to_account_info();
         let total_collateral = collateral_info.lamports();
         let rent_exempt = self.rent.minimum_balance(collateral_info.data_len());
@@ -123,28 +123,38 @@ impl<'info> LiquidateLoan<'info> {
 
     /// Transfers the protocol fee from the collateral vault (a PDA) to the protocol vault account.
     /// We use Anchor's `CpiContext::new_with_signer` to supply the PDA's seeds.
-    fn transfer_fee(&self, fee: u64) -> Result<()> {
-        let cpi_accounts = Transfer {
-            from: self.collateral_vault.to_account_info(),
-            to: self.protocol_vault.to_account_info(),
-        };
+    fn transfer_fee(&mut self, fee: u64) -> Result<()> {
+        // let cpi_accounts = Transfer {
+        //     from: self.collateral_vault.to_account_info(),
+        //     to: self.protocol_vault.to_account_info(),
+        // };
 
-        // The collateral_vault PDA was derived with seeds:
-        // [b"collateral_vault", loan_request.key().as_ref()] and its bump.
-        let loan_request_key = self.loan_request.to_account_info().key;
-        let seeds: &[&[u8]] = &[
-            b"collateral_vault",
-            loan_request_key.as_ref(),
-            &[self.collateral_vault.bump],
-        ];
-        let signer_seeds = &[seeds];
+        // // The collateral_vault PDA was derived with seeds:
+        // // [b"collateral_vault", loan_request.key().as_ref()] and its bump.
+        // let loan_request_key = self.loan_request.to_account_info().key;
+        // let seeds: &[&[u8]] = &[
+        //     b"collateral_vault",
+        //     loan_request_key.as_ref(),
+        //     &[self.collateral_vault.bump],
+        // ];
+        // let signer_seeds = &[seeds];
 
-        let cpi_ctx = CpiContext::new_with_signer(
-            self.system_program.to_account_info(),
-            cpi_accounts,
-            signer_seeds,
-        );
-        transfer(cpi_ctx, fee)?;
+        // let cpi_ctx = CpiContext::new_with_signer(
+        //     self.system_program.to_account_info(),
+        //     cpi_accounts,
+        //     signer_seeds,
+        // );
+        // transfer(cpi_ctx, fee)?;
+        // Ok(())
+
+         // Get account info references
+        let from_info = self.collateral_vault.to_account_info();
+        let to_info = self.protocol_vault.to_account_info();
+        
+        // Transfer lamports directly between account infos
+        **from_info.try_borrow_mut_lamports()? = from_info.lamports().checked_sub(fee).ok_or(ErrorCode::CalculationError)?;
+        **to_info.try_borrow_mut_lamports()? = to_info.lamports().checked_add(fee).ok_or(ErrorCode::CalculationError)?;
+        
         Ok(())
     }
 
