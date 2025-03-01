@@ -124,28 +124,6 @@ impl<'info> LiquidateLoan<'info> {
     /// Transfers the protocol fee from the collateral vault (a PDA) to the protocol vault account.
     /// We use Anchor's `CpiContext::new_with_signer` to supply the PDA's seeds.
     fn transfer_fee(&mut self, fee: u64) -> Result<()> {
-        // let cpi_accounts = Transfer {
-        //     from: self.collateral_vault.to_account_info(),
-        //     to: self.protocol_vault.to_account_info(),
-        // };
-
-        // // The collateral_vault PDA was derived with seeds:
-        // // [b"collateral_vault", loan_request.key().as_ref()] and its bump.
-        // let loan_request_key = self.loan_request.to_account_info().key;
-        // let seeds: &[&[u8]] = &[
-        //     b"collateral_vault",
-        //     loan_request_key.as_ref(),
-        //     &[self.collateral_vault.bump],
-        // ];
-        // let signer_seeds = &[seeds];
-
-        // let cpi_ctx = CpiContext::new_with_signer(
-        //     self.system_program.to_account_info(),
-        //     cpi_accounts,
-        //     signer_seeds,
-        // );
-        // transfer(cpi_ctx, fee)?;
-        // Ok(())
 
          // Get account info references
         let from_info = self.collateral_vault.to_account_info();
