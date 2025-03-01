@@ -7,6 +7,7 @@ use crate::state::{ CollateralVaultState, ConfigState, LoanRegistryState, LoanRe
 use crate::errors::ErrorCode;
 
 #[derive(Accounts)]
+#[instruction(loan_id: u64)]
 pub struct RepayLoan<'info> {
 
     //Since borrowing is making transaction
@@ -32,7 +33,7 @@ pub struct RepayLoan<'info> {
     //Loan Request account
     #[account(
         mut,
-        seeds = [b"loan_request", loan_request.borrower.as_ref(), &loan_request.loan_id.to_le_bytes()],
+        seeds = [b"loan_request", loan_request.borrower.as_ref(), &loan_id.to_le_bytes()],
         bump
     )]
     pub loan_request: Box<Account<'info, LoanRequestState>>,

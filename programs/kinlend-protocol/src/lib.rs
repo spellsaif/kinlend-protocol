@@ -53,7 +53,7 @@ pub mod kinlend_protocol {
 
 
     //Instruction for repaying loan by borrower
-    pub fn repay_loan(ctx: Context<RepayLoan>) -> Result<()> {
+    pub fn repay_loan(ctx: Context<RepayLoan>, _loan_id:u64) -> Result<()> {
         ctx.accounts.repay_loan()
     }
 
