@@ -48,7 +48,7 @@ describe("KINLEND PROTOCOL", () => {
     try {
       const [txId, priceFeed] = await pushOracle.createOracle(
         200, // $200 USD
-        -9,  // 9 decimal places
+        -6,  // 6 decimal places
         0.01 // 1% confidence interval
       );
       
