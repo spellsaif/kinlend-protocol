@@ -59,6 +59,8 @@ impl<'info> ClaimCollateral<'info> {
         self.ensure_loan_defaulted()?;
         let collateral_amount = self.get_collateral()?;
         self.transfer_collateral(collateral_amount)?;
+        self.remove_from_loan_registry()?;
+
         Ok(())
     }
 
@@ -143,6 +145,28 @@ impl<'info> ClaimCollateral<'info> {
             );
             transfer(cpi_ctx, fee)?;
         }
+        Ok(())
+    }
+
+
+
+    // remove the loan request from the loan registry
+    fn remove_from_loan_registry(&mut self) -> Result<()> {
+        let loan_request_key = self.loan_request.key();
+        
+        // Find the index of the loan request in the registry
+        let position = self.loan_registry.loan_requests.iter()
+            .position(|&pubkey| pubkey == loan_request_key)
+            .ok_or(ErrorCode::NotFoundInRegistry)?;
+        
+        // Remove the loan request from the registry
+        self.loan_registry.loan_requests.remove(position);
+        
+        // Decrement the total loans counter
+        self.loan_registry.total_loans = self.loan_registry.total_loans
+            .checked_sub(1)
+            .ok_or(ErrorCode::CalculationError)?;
+            
         Ok(())
     }
 }

@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
-use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2};
 
 use crate::state::{
     CollateralVaultState, LoanRegistryState, LoanRequestState, ProtocolVaultState,
@@ -49,9 +48,6 @@ pub struct LiquidateLoan<'info> {
     )]
     pub protocol_vault: Box<Account<'info, ProtocolVaultState>>,
 
-    /// Pyth Price Update account, used to fetch the current SOL/USD price.
-    pub price_update: Account<'info, PriceUpdateV2>,
-
     /// System Program.
     pub system_program: Program<'info, System>,
 
@@ -60,18 +56,23 @@ pub struct LiquidateLoan<'info> {
 }
 
 impl<'info> LiquidateLoan<'info> {
-    pub fn liquidate_loan(&mut self) -> Result<()> {
-        // 1. Ensure the lender calling this is the one recorded in the loan request.
+    pub fn liquidate_loan(
+        &mut self,
+        sol_price: u64, // SOL price in USDC smallest unit (passed directly)
+    ) -> Result<()> {
+        //  Ensure the lender calling this is the one recorded in the loan request.
         self.check_lender()?;
-        // 2. Ensure that liquidation is eligible (i.e. collateral's USD value is below 110% threshold).
-        self.ensure_liquidate_eligible()?;
-        // 3. Calculate net distribution amounts from the collateral vault.
-        //    We subtract the rent‑exempt minimum so that only the “excess” collateral is split.
+        //  Ensure that liquidation is eligible (i.e. collateral's USD value is below 110% threshold).
+        self.ensure_liquidate_eligible(sol_price)?;
+        //  Calculate net distribution amounts from the collateral vault.
+        //  We subtract the rent‑exempt minimum so that only the "excess" collateral is split.
         let (_lender_net, protocol_fee) = self.calculate_distribution()?;
-        // 4. Transfer the protocol fee from the collateral vault (PDA) to the protocol vault account.
+        // Transfer the protocol fee from the collateral vault (PDA) to the protocol vault account.
         self.transfer_fee(protocol_fee)?;
-        // 5. At the end of the instruction, both the loan_request and collateral_vault accounts
+        //At the end of the instruction, both the loan_request and collateral_vault accounts
         //    are closed and their remaining lamports (including rent deposits) are sent to the lender.
+
+        self.remove_from_loan_registry()?;
         Ok(())
     }
 
@@ -86,8 +87,7 @@ impl<'info> LiquidateLoan<'info> {
 
     /// Checks if the loan is eligible for liquidation.
     /// Liquidation is allowed if the USD value of the collateral is below 110% of the loan amount.
-    fn ensure_liquidate_eligible(&self) -> Result<()> {
-        let sol_price = self.get_current_sol_price()?; // in USD per SOL
+    fn ensure_liquidate_eligible(&self, sol_price: u64) -> Result<()> {
         let collateral_lamports = self.collateral_vault.to_account_info().lamports();
         // Convert lamports to SOL (1 SOL = 1e9 lamports) and then to USD.
         let collateral_usd_value = (collateral_lamports as f64 / 1e9) * (sol_price as f64);
@@ -129,16 +129,6 @@ impl<'info> LiquidateLoan<'info> {
         Ok((lender_net, protocol_fee))
     }
 
-    /// Fetches the current SOL price (USD per SOL) from the Pyth price feed.
-    fn get_current_sol_price(&self) -> Result<u64> {
-        let maximum_age: u64 = 30;
-        const SOL_USD_HEX: &str = "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
-        let feed_id = get_feed_id_from_hex(SOL_USD_HEX)?;
-        let clock = Clock::get()?;
-        let price_data = self.price_update.get_price_no_older_than(&clock, maximum_age, &feed_id)?;
-        Ok(price_data.price as u64)
-    }
-
     /// Transfers the protocol fee from the collateral vault (a PDA) to the protocol vault account.
     /// We use Anchor's `CpiContext::new_with_signer` to supply the PDA's seeds.
     fn transfer_fee(&self, fee: u64) -> Result<()> {
@@ -163,6 +153,28 @@ impl<'info> LiquidateLoan<'info> {
             signer_seeds,
         );
         transfer(cpi_ctx, fee)?;
+        Ok(())
+    }
+
+
+
+    // remove the loan request from the loan registry
+    fn remove_from_loan_registry(&mut self) -> Result<()> {
+        let loan_request_key = self.loan_request.key();
+        
+        // Find the index of the loan request in the registry
+        let position = self.loan_registry.loan_requests.iter()
+            .position(|&pubkey| pubkey == loan_request_key)
+            .ok_or(ErrorCode::NotFoundInRegistry)?;
+        
+        // Remove the loan request from the registry
+        self.loan_registry.loan_requests.remove(position);
+        
+        // Decrement the total loans counter
+        self.loan_registry.total_loans = self.loan_registry.total_loans
+            .checked_sub(1)
+            .ok_or(ErrorCode::CalculationError)?;
+            
         Ok(())
     }
 }

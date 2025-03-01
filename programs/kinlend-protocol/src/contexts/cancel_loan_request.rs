@@ -48,7 +48,7 @@ impl<'info> CancelLoanRequest<'info> {
 
         //check loan funded or not by checking whether lender is assgined to given loan request
         self.check_loan_funded()?;
-
+        self.remove_from_loan_registry()?;
 
         //todo: implementing logic to remove loan_request from loan registry
 
@@ -62,6 +62,27 @@ impl<'info> CancelLoanRequest<'info> {
             return Err(ErrorCode::AlreadyFunded.into());
         }
 
+        Ok(())
+    }
+
+
+    // remove the loan request from the loan registry
+    fn remove_from_loan_registry(&mut self) -> Result<()> {
+        let loan_request_key = self.loan_request.key();
+        
+        // Find the index of the loan request in the registry
+        let position = self.loan_registry.loan_requests.iter()
+            .position(|&pubkey| pubkey == loan_request_key)
+            .ok_or(ErrorCode::NotFoundInRegistry)?;
+        
+        // Remove the loan request from the registry
+        self.loan_registry.loan_requests.remove(position);
+        
+        // Decrement the total loans counter
+        self.loan_registry.total_loans = self.loan_registry.total_loans
+            .checked_sub(1)
+            .ok_or(ErrorCode::CalculationError)?;
+            
         Ok(())
     }
 

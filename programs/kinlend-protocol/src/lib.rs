@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("5NYiLMkYrumBZnnjUeDQfjod1agKCCeYzFpHqCZcCjzt");
+declare_id!("GJSshH3kYxm6JL9vqgUwiczFDE1tRxaZZ47VUohkjCVu");
 
 pub mod errors;
 pub mod state;
@@ -23,7 +23,8 @@ pub mod kinlend_protocol {
         loan_id:u64, 
         loan_amount:u64, 
         collateral:u64,
-        duration_days:u64
+        duration_days:u64,
+        sol_price: u64,
 
     ) -> Result<()> {
 
@@ -32,6 +33,7 @@ pub mod kinlend_protocol {
             loan_amount, 
             collateral,
             duration_days,
+            sol_price,
             ctx.bumps
         )
 
@@ -61,8 +63,8 @@ pub mod kinlend_protocol {
     }
 
     //Instruction for liquidating Loan
-    pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
-        ctx.accounts.liquidate_loan()
+    pub fn liquidate_loan(ctx: Context<LiquidateLoan>, sol_price: u64) -> Result<()> {
+        ctx.accounts.liquidate_loan(sol_price)
     }
 
     //Instruction for creating Protocol Vault which for receiving SOL as FEE

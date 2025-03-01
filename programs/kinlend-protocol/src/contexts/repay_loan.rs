@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 
 use crate::helpers::{check_balance, check_deadline_is_not_expired, check_right_borrower, check_usdc_mint_address};
-use crate::state::{ CollateralVaultState, ConfigState, LoanRequestState};
+use crate::state::{ CollateralVaultState, ConfigState, LoanRegistryState, LoanRequestState};
 
 use crate::errors::ErrorCode;
 
@@ -74,6 +74,13 @@ pub struct RepayLoan<'info> {
     )]
     pub config: Box<Account<'info, ConfigState>>,
 
+    #[account(
+        mut,
+        seeds = [b"loan_registry"],
+        bump,
+    )]
+    pub loan_registry: Box<Account<'info, LoanRegistryState>>,
+
     //USDC_mint
     pub usdc_mint: Account<'info, Mint>,
 
@@ -118,6 +125,7 @@ impl<'info> RepayLoan<'info> {
         
         // When the instruction completes, the collateral_vault account is automatically closed,
         // and its entire lamport balance is transferred to the borrower because of `close = borrower`.
+        self.remove_from_loan_registry()?;
 
 
         Ok(())
@@ -182,4 +190,25 @@ impl<'info> RepayLoan<'info> {
         Ok(())
     }
     
+
+
+    // remove the loan request from the loan registry
+    fn remove_from_loan_registry(&mut self) -> Result<()> {
+        let loan_request_key = self.loan_request.key();
+        
+        // Find the index of the loan request in the registry
+        let position = self.loan_registry.loan_requests.iter()
+            .position(|&pubkey| pubkey == loan_request_key)
+            .ok_or(ErrorCode::NotFoundInRegistry)?;
+        
+        // Remove the loan request from the registry
+        self.loan_registry.loan_requests.remove(position);
+        
+        // Decrement the total loans counter
+        self.loan_registry.total_loans = self.loan_registry.total_loans
+            .checked_sub(1)
+            .ok_or(ErrorCode::CalculationError)?;
+            
+        Ok(())
+    }
 }
