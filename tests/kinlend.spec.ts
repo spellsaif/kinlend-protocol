@@ -750,7 +750,7 @@ describe("KINLEND PROTOCOL", () => {
     const SOL_PRICE = 200_000_000; // $200 with 6 decimals
     
     // Use a different loan ID for this test
-    const cancelLoanId = new BN(50);
+    const cancelLoanId = new BN(100);
     
     const [cancelLoanRequestPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("loan_request"), borrower.publicKey.toBuffer(), cancelLoanId.toArrayLike(Buffer, "le", 8)],
@@ -772,7 +772,7 @@ describe("KINLEND PROTOCOL", () => {
           noOfDays,
           new BN(SOL_PRICE) // Pass SOL price directly
         )
-        .accounts({
+        .accountsStrict({
           borrower: borrower.publicKey,
           loanRequest: cancelLoanRequestPDA,
           collateralVault: cancelCollateralVaultPDA,
@@ -789,11 +789,7 @@ describe("KINLEND PROTOCOL", () => {
       await program.methods
         .cancelLoanRequest()
         .accounts({
-          borrower: borrower.publicKey,
-          loanRequest: cancelLoanRequestPDA,
-          collateralVault: cancelCollateralVaultPDA,
-          loanRegistry: loanRegistryPDA,
-          systemProgram: SYSTEM_PROGRAM_ID
+          borrower: borrower.publicKey
         })
         .signers([borrower])
         .rpc();
