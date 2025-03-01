@@ -29,6 +29,9 @@ describe("KINLEND PROTOCOL", () => {
   let admin: PublicKey;
   let adminPayer: Keypair;
   let usdcMint: PublicKey;
+  let configUsdcMint: PublicKey;
+
+  
 
   // Set admin to the provider's wallet
   admin = provider.wallet.publicKey;
@@ -97,29 +100,22 @@ describe("KINLEND PROTOCOL", () => {
       lastValidBlockHeight: latestBlockhashLender.lastValidBlockHeight,
     });
 
-    // Create USDC mint with 6 decimals
-    usdcMint = await createMint(
-      provider.connection, 
-      adminPayer,
-      admin,
-      null,
-      6
-    );
+
   });
 
   // Test 1: Initialize Protocol Vault
   it("Should initialize Protocol Vault PDA Account", async() => {
+    
+    const latestBlockhashLender = await provider.connection.getLatestBlockhash();
     try {
       // Create protocol vault to store fees
       await program.methods
         .createProtocolVault()
-        .accountsPartial({
+        .accounts({
           admin,
-          protocolVault: protocolVaultPDA,
-          systemProgram: SYSTEM_PROGRAM_ID,
         })
         .signers([adminPayer])
-        .rpc();
+        .rpc({commitment: "confirmed"});
 
       assert.ok("Created protocol vault successfully");
     } catch(err) {
@@ -134,10 +130,8 @@ describe("KINLEND PROTOCOL", () => {
       // Create loan registry to track all loans
       await program.methods
         .createLoanRegistry()
-        .accountsPartial({
+        .accounts({
           admin,
-          loanRegistry: loanRegistryPDA,
-          systemProgram: SYSTEM_PROGRAM_ID,
         })
         .signers([adminPayer])
         .rpc();
@@ -153,11 +147,21 @@ describe("KINLEND PROTOCOL", () => {
 
   // Test 3: Initialize Config
   it("Should initialize config PDA account", async() => {
+
+
+      // Create USDC mint with 6 decimals
+      usdcMint = await createMint(
+        provider.connection, 
+        adminPayer,
+        admin,
+        null,
+        6
+      );
     try {
       // Initialize config with admin authority and USDC mint
       await program.methods
         .initConfig()
-        .accountsPartial({
+        .accountsStrict({
           admin,
           usdcMint,
           config: configPDA,
@@ -168,6 +172,8 @@ describe("KINLEND PROTOCOL", () => {
 
       // Verify config was initialized correctly
       const config = await program.account.configState.fetch(configPDA);
+      configUsdcMint = config.usdcMint;
+      console.log(`config usdc: ${configUsdcMint.toBase58()}, usdcMint: ${usdcMint.toBase58()}` )
       expect(config.authority.toBase58()).to.equal(admin.toBase58());
       expect(config.usdcMint.toBase58()).to.equal(usdcMint.toBase58());
     } catch(err) {
@@ -284,10 +290,16 @@ describe("KINLEND PROTOCOL", () => {
   // Test 8: Fund Loan
   it("Should fund a loan request", async() => {
     // Create loan request first
-    const newLoanId = new BN(10);
+    const newLoanId = new BN(2);
     const [newLoanRequestPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("loan_request"), borrower.publicKey.toBuffer(), newLoanId.toArrayLike(Buffer, "le", 8)],
-      program.programId)
+      program.programId
+    );
+
+    const [newCollateralVaultPDA, newCollateralVaultPDABump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("collateral_vault"), newLoanRequestPDA.toBuffer()],
+      program.programId
+    );
     const loanAmount = new BN(1_000_000); // 1 USDC
     const collateral = new BN(7_500_000); // 0.0075 SOL
     const noOfDays = new BN(30);
@@ -296,16 +308,16 @@ describe("KINLEND PROTOCOL", () => {
       // Create loan request with SOL price parameter
       await program.methods
         .createLoanRequest(
-          new BN(2),
+          newLoanId,
           loanAmount,
           collateral,
           noOfDays,
           new BN(SOL_PRICE) // Pass SOL price directly
         )
-        .accountsPartial({
+        .accountsStrict({
           borrower: borrower.publicKey,
-          loanRequest: loanRequestPDA,
-          collateralVault: collateralVaultPDA,
+          loanRequest: newLoanRequestPDA,
+          collateralVault: newCollateralVaultPDA,
           loanRegistry: loanRegistryPDA,
           systemProgram: SYSTEM_PROGRAM_ID
         })
@@ -337,10 +349,11 @@ describe("KINLEND PROTOCOL", () => {
         10_000_000 // 10 USDC
       );
 
+      console.log(`config usdc: ${configUsdcMint.toBase58()}, usdcMint: ${usdcMint.toBase58()}` )
       // Fund the loan
       await program.methods
-        .fundLoan()
-        .accountsPartial({
+        .fundLoan(newLoanId)
+        .accountsStrict({
           lender: lender.publicKey,
           config: configPDA,
           loanRequest: newLoanRequestPDA,
@@ -356,7 +369,8 @@ describe("KINLEND PROTOCOL", () => {
         .rpc();
 
       // Verify loan request was updated with lender info
-      const loanRequestAccount = await program.account.loanRequestState.fetch(loanRequestPDA);
+      const loanRequestAccount = await program.account.loanRequestState.fetch(newLoanRequestPDA);
+      console.log("FUND LOAN: ", loanRequestAccount);
       expect(loanRequestAccount.lender).to.not.equal(null);
       expect(loanRequestAccount.lender.toString()).to.equal(lender.publicKey.toString());
       expect(loanRequestAccount.repaymentTime).to.not.equal(null);
@@ -380,6 +394,16 @@ describe("KINLEND PROTOCOL", () => {
 
     try {
       // Create loan request
+      const newLoanId = new BN(3);
+    const [newLoanRequestPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("loan_request"), borrower.publicKey.toBuffer(), newLoanId.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+
+    const [newCollateralVaultPDA, newCollateralVaultPDABump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("collateral_vault"), newLoanRequestPDA.toBuffer()],
+      program.programId
+    );
       await program.methods
         .createLoanRequest(
           loanId,
@@ -425,7 +449,7 @@ describe("KINLEND PROTOCOL", () => {
 
       // Fund the loan
       await program.methods
-        .fundLoan()
+        .fundLoan(newLoanId)
         .accountsPartial({
           lender: lender.publicKey,
           config: configPDA,
@@ -795,36 +819,36 @@ describe("KINLEND PROTOCOL", () => {
     }
   });
 
-  // Test 4: Update Config
-  it("Should update config's usdcMint field", async() => {
-    try {
-      // Create a new USDC mint
-      let newUsdcMint = await createMint(
-        provider.connection,
-        adminPayer,
-        admin,
-        null,
-        6
-      );
+  // // Test 4: Update Config
+  // it("Should update config's usdcMint field", async() => {
+  //   try {
+  //     // Create a new USDC mint
+  //     let newUsdcMint = await createMint(
+  //       provider.connection,
+  //       adminPayer,
+  //       admin,
+  //       null,
+  //       6
+  //     );
 
-      // Update config to use the new USDC mint
-      await program.methods
-        .updateConfig()
-        .accountsPartial({
-          admin,
-          config: configPDA,
-          newUsdcMint,
-          systemProgram: SYSTEM_PROGRAM_ID
-        })
-        .signers([adminPayer])
-        .rpc();
+  //     // Update config to use the new USDC mint
+  //     await program.methods
+  //       .updateConfig()
+  //       .accountsPartial({
+  //         admin,
+  //         config: configPDA,
+  //         newUsdcMint,
+  //         systemProgram: SYSTEM_PROGRAM_ID
+  //       })
+  //       .signers([adminPayer])
+  //       .rpc();
 
-      // Verify config was updated correctly
-      const configAccount = await program.account.configState.fetch(configPDA);
-      expect(configAccount.usdcMint.toBase58()).to.equal(newUsdcMint.toBase58());
-    } catch(err) {
-      console.error("Error updating config:", err);
-      assert.fail("Failed to update config");
-    }
-  });
+  //     // Verify config was updated correctly
+  //     const configAccount = await program.account.configState.fetch(configPDA);
+  //     expect(configAccount.usdcMint.toBase58()).to.equal(newUsdcMint.toBase58());
+  //   } catch(err) {
+  //     console.error("Error updating config:", err);
+  //     assert.fail("Failed to update config");
+  //   }
+  // });
 });

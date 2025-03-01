@@ -94,9 +94,10 @@ impl<'info> FundLoan<'info> {
 
     /// Verifies that the USDC mint provided in the instruction matches the configuration.
     fn verify_usdc_mint(&self) -> Result<()> {
-        let config_usdc_mint = self.config.usdc_mint;
-        let provided_usdc_mint = self.usdc_mint.key();
-        check_usdc_mint_address(config_usdc_mint, provided_usdc_mint)
+        if self.config.usdc_mint != self.usdc_mint.key() {
+            return Err(ErrorCode::IncorrectUsdcMintAddress.into());
+        }
+        Ok(())
     }
 
     /// Updates the loan request state by storing the lender's public key.
