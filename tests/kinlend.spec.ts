@@ -387,14 +387,7 @@ describe("KINLEND PROTOCOL", () => {
   // Test 9: Repay Loan
   it("Should repay a loan", async() => {
     // Create and fund loan first
-    const loanAmount = new BN(1_000_000); // 1 USDC
-    const collateral = new BN(7_500_000); // 0.0075 SOL
-    const noOfDays = new BN(30);
-    const SOL_PRICE = 200_000_000; // $200 with 6 decimals
-
-    try {
-      // Create loan request
-      const newLoanId = new BN(3);
+    const newLoanId = new BN(10);
     const [newLoanRequestPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("loan_request"), borrower.publicKey.toBuffer(), newLoanId.toArrayLike(Buffer, "le", 8)],
       program.programId
@@ -404,6 +397,15 @@ describe("KINLEND PROTOCOL", () => {
       [Buffer.from("collateral_vault"), newLoanRequestPDA.toBuffer()],
       program.programId
     );
+    
+    const loanAmount = new BN(1_000_000); // 1 USDC
+    const collateral = new BN(7_500_000); // 0.0075 SOL
+    const noOfDays = new BN(30);
+    const SOL_PRICE = 200_000_000; // $200 with 6 decimals
+
+    try {
+      // Create loan request
+      
       await program.methods
         .createLoanRequest(
           loanId,
@@ -412,10 +414,10 @@ describe("KINLEND PROTOCOL", () => {
           noOfDays,
           new BN(SOL_PRICE) // Pass SOL price directly
         )
-        .accountsPartial({
+        .accountsStrict({
           borrower: borrower.publicKey,
-          loanRequest: loanRequestPDA,
-          collateralVault: collateralVaultPDA,
+          loanRequest: newLoanRequestPDA,
+          collateralVault: newCollateralVaultPDA,
           loanRegistry: loanRegistryPDA,
           systemProgram: SYSTEM_PROGRAM_ID
         })
@@ -450,10 +452,10 @@ describe("KINLEND PROTOCOL", () => {
       // Fund the loan
       await program.methods
         .fundLoan(newLoanId)
-        .accountsPartial({
+        .accountsStrict({
           lender: lender.publicKey,
           config: configPDA,
-          loanRequest: loanRequestPDA,
+          loanRequest: newLoanRequestPDA,
           borrower: borrower.publicKey,
           lenderUsdcAccount: lenderUsdcATA,
           borrowerUsdcAccount: borrowerUsdcATA,
@@ -489,13 +491,13 @@ describe("KINLEND PROTOCOL", () => {
 
       // Repay the loan
       await program.methods
-        .repayLoan()
+        .repayLoan(newLoanId)
         .accountsPartial({
           borrower: borrower.publicKey,
           borrowerUsdcAccount: borrowerUsdcATA,
           lenderUsdcAccount: lenderUsdcATA,
-          loanRequest: loanRequestPDA,
-          collateralVault: collateralVaultPDA,
+          loanRequest: newLoanRequestPDA,
+          collateralVault: newCollateralVaultPDA,
           protocolVaultUsdc: protocolVaultUsdcPDA,
           protocolVaultAuthority: protocolVaultUsdcAuthorityPDA,
           config: configPDA,
@@ -524,7 +526,7 @@ describe("KINLEND PROTOCOL", () => {
 
       // Try to fetch the loan request account - should fail as it's closed
       try {
-        await program.account.loanRequestState.fetch(loanRequestPDA);
+        await program.account.loanRequestState.fetch(newLoanRequestPDA);
         assert.fail("Loan request account should be closed");
       } catch (error) {
         // Expected error
