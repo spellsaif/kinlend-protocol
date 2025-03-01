@@ -542,13 +542,13 @@ describe("KINLEND PROTOCOL", () => {
   // Test 10: Claim Collateral After Deadline
   it("Should claim collateral after loan deadline", async() => {
     // Create and fund a loan that will expire
+    const expiredLoanId = new BN(20);
     const loanAmount = new BN(1_000_000); // 1 USDC
     const collateral = new BN(7_500_000); // 0.0075 SOL
     const noOfDays = new BN(30);
     const SOL_PRICE = 200_000_000; // $200 with 6 decimals
     
     // Use a different loan ID for this test
-    const expiredLoanId = new BN(2);
     
     const [expiredLoanRequestPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("loan_request"), borrower.publicKey.toBuffer(), expiredLoanId.toArrayLike(Buffer, "le", 8)],
@@ -582,7 +582,7 @@ describe("KINLEND PROTOCOL", () => {
 
       // Fund the loan
       await program.methods
-        .fundLoan()
+        .fundLoan(expiredLoanId)
         .accountsPartial({
           lender: lender.publicKey,
           config: configPDA,
@@ -602,13 +602,10 @@ describe("KINLEND PROTOCOL", () => {
       // Since we can't do that in this environment, we'll just note that
       // this test would normally fail with LoanIsNotExpired error
       
-      console.log("Note: In a real test environment with time manipulation, we would fast-forward time here");
-      console.log("This test would normally fail with LoanIsNotExpired error");
-      
       // For demonstration purposes, we'll try to claim collateral (expecting it to fail)
       try {
         await program.methods
-          .claimCollateral()
+          .claimCollateral(expiredLoanId)
           .accountsPartial({
             lender: lender.publicKey,
             loanRequest: expiredLoanRequestPDA,
@@ -641,7 +638,7 @@ describe("KINLEND PROTOCOL", () => {
     const SOL_PRICE = 200_000_000; // $200 with 6 decimals
     
     // Use a different loan ID for this test
-    const liquidationLoanId = new BN(3);
+    const liquidationLoanId = new BN(30);
     
     const [liquidationLoanRequestPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("loan_request"), borrower.publicKey.toBuffer(), liquidationLoanId.toArrayLike(Buffer, "le", 8)],
@@ -675,7 +672,7 @@ describe("KINLEND PROTOCOL", () => {
 
       // Fund the loan
       await program.methods
-        .fundLoan()
+        .fundLoan(liquidationLoanId)
         .accountsPartial({
           lender: lender.publicKey,
           config: configPDA,
@@ -698,7 +695,8 @@ describe("KINLEND PROTOCOL", () => {
       // Try to liquidate the loan with the new lower price
       try {
         await program.methods
-          .liquidateLoan(new BN(loweredSolPrice))
+          .liquidateLoan(liquidationLoanId
+            ,new BN(loweredSolPrice))
           .accountsPartial({
             lender: lender.publicKey,
             loanRequest: liquidationLoanRequestPDA,
@@ -753,7 +751,7 @@ describe("KINLEND PROTOCOL", () => {
     const SOL_PRICE = 200_000_000; // $200 with 6 decimals
     
     // Use a different loan ID for this test
-    const cancelLoanId = new BN(4);
+    const cancelLoanId = new BN(50);
     
     const [cancelLoanRequestPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("loan_request"), borrower.publicKey.toBuffer(), cancelLoanId.toArrayLike(Buffer, "le", 8)],
@@ -822,36 +820,36 @@ describe("KINLEND PROTOCOL", () => {
     }
   });
 
-  // // Test 4: Update Config
-  // it("Should update config's usdcMint field", async() => {
-  //   try {
-  //     // Create a new USDC mint
-  //     let newUsdcMint = await createMint(
-  //       provider.connection,
-  //       adminPayer,
-  //       admin,
-  //       null,
-  //       6
-  //     );
+   // Test 4: Update Config
+  it("Should update config's usdcMint field", async() => {
+     try {
+       // Create a new USDC mint
+       let newUsdcMint = await createMint(
+         provider.connection,
+         adminPayer,
+         admin,
+         null,
+         6
+       );
 
-  //     // Update config to use the new USDC mint
-  //     await program.methods
-  //       .updateConfig()
-  //       .accountsPartial({
-  //         admin,
-  //         config: configPDA,
-  //         newUsdcMint,
-  //         systemProgram: SYSTEM_PROGRAM_ID
-  //       })
-  //       .signers([adminPayer])
-  //       .rpc();
+       // Update config to use the new USDC mint
+       await program.methods
+         .updateConfig()
+         .accountsPartial({
+           admin,
+           config: configPDA,
+           newUsdcMint,
+           systemProgram: SYSTEM_PROGRAM_ID
+         })
+         .signers([adminPayer])
+         .rpc();
 
-  //     // Verify config was updated correctly
-  //     const configAccount = await program.account.configState.fetch(configPDA);
-  //     expect(configAccount.usdcMint.toBase58()).to.equal(newUsdcMint.toBase58());
-  //   } catch(err) {
-  //     console.error("Error updating config:", err);
-  //     assert.fail("Failed to update config");
-  //   }
-  // });
+       // Verify config was updated correctly
+       const configAccount = await program.account.configState.fetch(configPDA);
+       expect(configAccount.usdcMint.toBase58()).to.equal(newUsdcMint.toBase58());
+     } catch(err) {
+       console.error("Error updating config:", err);
+       assert.fail("Failed to update config");
+     }
+   });
 });
