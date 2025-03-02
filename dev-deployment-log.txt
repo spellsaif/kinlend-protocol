@@ -1,0 +1,21 @@
+Deploying cluster: https://api.devnet.solana.com
+Upgrade authority: /home/nanasi/.config/solana/dev.json
+Deploying program "kinlend_protocol"...
+Program path: /home/nanasi/Desktop/projects/capstone/kinlend-protocol/target/deploy/kinlend_protocol.so...
+Program Id: GJSshH3kYxm6JL9vqgUwiczFDE1tRxaZZ47VUohkjCVu
+
+Signature: KECZk1VEcJqYX8a6ANPwM4jUugJD4dwkS7BArLSLityYFpY7pDiBvdGJ2VYf9qqsFTH93GpDuXXtpHjXXX6fsGU
+
+Deploy success
+
+
+---------------------
+Program Information
+---------------------
+Program Id: GJSshH3kYxm6JL9vqgUwiczFDE1tRxaZZ47VUohkjCVu
+Owner: BPFLoaderUpgradeab1e11111111111111111111111
+ProgramData Address: BEcxUMcv8GCif2AsWCAR5fjrjZsKdLp37Mmf2pbJQsDG
+Authority: AsAduBWNpjJXvW2mN1PXKM1CuHeNYapQQ2VCjZpq9Hbq
+Last Deployed In Slot: 364497751
+Data Length: 440328 (0x6b808) bytes
+Balance: 3.06588696 SOL
