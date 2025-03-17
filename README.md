@@ -50,10 +50,10 @@ This decentralized protocol removes intermediaries, providing a **trustless** an
 #### 5️⃣ **Collateral Handling**  
 
 ##### 🔴 **If the Borrower Fails to Repay**  
-- The lender can **claim the collateral**, but **10% of it goes to the protocol**.  
+- The lender can **claim the collateral**, but **2% of it goes to the protocol**.  
 
 ##### 🔥 **Early Liquidation (If Price Drops)**  
-- If the **collateral’s value falls to 110% of the loan amount**, the lender can **liquidate it immediately**, even before the repayment deadline.  
+- If the **collateral’s value falls to 110% of the loan amount**, the lender can **liquidate it immediately**, even before the repayment deadline. and after **liquidation** protocol will receives 10% as service fee.
 
 ---
 
