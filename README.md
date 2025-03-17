@@ -59,10 +59,9 @@ This decentralized protocol removes intermediaries, providing a **trustless** an
 
 ## 📂 Documents 📜  
 
-The `documents` folder contains:  
 
-📌 **Architecture Diagram** 🏗️ (`documents/architecture.png`) – Visual overview of how the protocol functions.  
-📌 **User Stories** 📖 (`documents/user_stories.md`) – Real-world borrower & lender scenarios.  
+📌 **Architecture Diagram** 🏗️ (`documents/Arch_Diagram_Q1_25_Builder_spellsaif.pdf`) – Visual overview of how the protocol functions.  
+📌 **User Stories** 📖 (`documents/User_Stories_Q1_25_Builder_spellsaif.pdf`) – Real-world borrower & lender scenarios.  
 
 ---
 
