@@ -74,3 +74,33 @@ Ensure you have the following installed:
 - **Rust & Cargo** (for Solana development):  
   ```bash
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh 
+
+- **Anchor Framework**:
+  ```bash
+  cargo install --git https://github.com/coral-xyz/anchor anchor-cli --locked
+
+- **Fund wallet (Devnet Token)**:
+  ```bash
+  solana airdrop 2
+
+- **Clone Repository**:
+  ```bash
+  git clone https://github.com/spellsaif/kinlend-protocol.git
+  cd kinlend-protocol
+
+- **Configure Solana to use Devnet**:
+  ```bash
+  solana config set --url devnet
+
+- **Build Program**:
+  ```bash
+  anchor build
+
+- **Deploy**:
+  ```bash
+  anchor deploy
+
+- **Verify Deployment**:
+  ```bash
+  cat target/deploy/kinlend-keypair.json
+  solana program show <PROGRAM_ID>
